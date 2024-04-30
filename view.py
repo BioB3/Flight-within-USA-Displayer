@@ -1,15 +1,16 @@
 """User interface for Flight within USA displayer"""
-import tkinter as tk
-import matplotlib.pyplot as plt
 from tkinter import ttk
 from model import FlightDataModel, Observer
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from abc import ABC, abstractmethod
+import tkinter as tk
+import matplotlib.pyplot as plt
 
 class UI(tk.Tk, Observer):
-    def __init__ (self, model:FlightDataModel) -> None:
+    def __init__ (self, controller, model:FlightDataModel) -> None:
         super().__init__()
         self.title('Flight within USA displayer')
+        self.__controller = controller
         self.__model = model
         self.init_components()
 
