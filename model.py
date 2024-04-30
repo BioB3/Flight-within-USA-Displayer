@@ -1,8 +1,8 @@
 """Model to handle data processing for Flight within USA displayer"""
 from __future__ import annotations
+from abc import ABC, abstractmethod
 import os
 import pandas as pd
-from abc import ABC, abstractmethod
 
 class Subject(ABC):
     """
@@ -13,21 +13,21 @@ class Subject(ABC):
         """
         Attach an observer to the subject
         """
-        pass
-    
+        raise NotImplementedError
+
     @abstractmethod
     def detach(self, observer: Observer):
         """
         Detach an observer from the subject
         """
-        pass
-    
+        raise NotImplementedError
+
     @abstractmethod
     def notify(self):
         """
         Notify observers about an event
         """
-        pass
+        raise NotImplementedError
 
 class Observer(ABC):
     """
@@ -38,14 +38,14 @@ class Observer(ABC):
         """
         Recieve update from subject
         """
-        pass
+        raise NotImplementedError
 
 class FlightDataModel(Subject):
     """
     Model for computing data from the datasets
     """
     _observers : list[Observer] =  []
-    
+
     def __init__(self) -> None:
         self.__df = self.gen_df()
         self.__sorted_df: pd.DataFrame
@@ -57,17 +57,27 @@ class FlightDataModel(Subject):
                              "% time blk"]
         self.__current_state = self.__states[0]
         self.__sel_graph = self.__graph_type[0]
-    
+        self.__observers = []
+
     @property
     def df(self):
+        """
+        Getter for df attribute
+        """
         return self.__df
 
     @property
     def sorted_df(self):
+        """
+        Getter for sorted_df attribute
+        """
         return self.__sorted_df
 
     @property
     def graph_type(self):
+        """
+        Getter for graph_type attribute
+        """
         return self.__graph_type
 
     def gen_df(self):
@@ -75,8 +85,8 @@ class FlightDataModel(Subject):
         Read csv files as dataframe, join them and clean the data.
         Return: a dataframe consists of data from 2 datasets
         """
-        df1 = pd.read_csv(os.path.join(os.getcwd(), "datasets/Jan_2020_ontime.csv"))
-        df2 = pd.read_csv(os.path.join(os.getcwd(), "datasets/Airline_dataset.csv"))
+        df1 = pd.read_csv(os.path.join(os.getcwd(), "datasets", "Jan_2020_ontime.csv"))
+        df2 = pd.read_csv(os.path.join(os.getcwd(), "datasets", "Airline_dataset.csv"))
         df1["ORIGIN"] = df1["ORIGIN"].str.replace('"','')
         df1["DEST"] = df1["DEST"].str.replace('"','')
         df2["FL_DATE"] = pd.to_datetime(df2["FL_DATE"], format="%m/%d/%y")
@@ -84,7 +94,8 @@ class FlightDataModel(Subject):
         df1["FL_DATE"] = pd.to_datetime(df1["FL_DATE"], format="%m/%d/%y")
         df3 = pd.merge(df1, df2, how="left",
                              left_on=["ORIGIN","DEST","DEP_TIME","ARR_TIME","FL_DATE"],
-                             right_on=["ORIGIN_AIRPORT","DEST_AIRPORT","DEP_TIME","ARR_TIME","FL_DATE"])
+                             right_on=["ORIGIN_AIRPORT","DEST_AIRPORT","DEP_TIME",
+                                       "ARR_TIME","FL_DATE"])
         df3["DEP_TIME_BLK"] = ["Early Morning" if 400 <= x < 800 else
                                ("Morning" if 800 <= x < 1200 else
                                 ("Afternoon" if 1200 <= x < 1600 else
@@ -102,25 +113,33 @@ class FlightDataModel(Subject):
                        axis=1, inplace=True)
         df3.drop(["AIRLINE_ID","ORIGIN_AIRPORT","DEST_AIRPORT"], axis=1, inplace=True)
         return df3
-    
+
     def attach(self, observer: Observer):
-        self._observers.append(observer)
+        self.__observers.append(observer)
 
     def detach(self, observer: Observer):
-        self._observers.remove(observer)
+        self.__observers.remove(observer)
 
     def notify(self):
-        for observer in self._observers:
+        for observer in self.__observers:
             observer.update(self)
-    
+
     def set_state(self, index: int):
+        """
+        Set the model's search state
+        """
         self.__current_state = self.__states[index]
 
     def set_sel_graph(self, index: int):
+        """
+        Set the model's selected graph type
+        """
         self.__sel_graph = self.__graph_type[index]
 
-    def sort_data(self, a_code: list[str], week: list[bool],
-                         time_blk: list[bool]):
+    def sort_data(self, a_code: list[str], week: list[bool], time_blk: list[bool]):
+        """
+        Sort the dataframe using the parameters as filter
+        """
         self.__sorted_df = self.__current_state.sort_data(a_code, week, time_blk)
 
 class SearchState(ABC):
@@ -132,17 +151,17 @@ class SearchState(ABC):
                       2: "Afternoon",
                       3: "Evening",
                       4: "Night"}
-    
+
     def __init__(self, dataframe: pd.DataFrame) -> None:
         self._df = dataframe
-    
+
     @property
     def df(self):
         """
         Getter for df attribute
         """
         return self._df
-    
+
     def convert_bool_to_filter(self, week: list[bool], time_blk: list[bool]):
         """
         Convert list of boolean into list of filter option selected
@@ -150,33 +169,42 @@ class SearchState(ABC):
         wk = [i+1 for i in range(5) if week[i]]
         t_bk = [self._time_blk_dict[i] for i in range(5) if time_blk[i]]
         return wk, t_bk
-    
+
     @abstractmethod
-    def sort_data(self):
+    def sort_data(self, filt, week, time_blk):
         """
         Return a sorted dataframe based on the filter.
         """
-        pass
+        raise NotImplementedError
 
 class SearchByFlight(SearchState):
-    def sort_data(self, flight: list[str], week: list[bool], time_blk: list[bool]):
+    """
+    A state for sorting the dataframe using flight as the filter
+    """
+    def sort_data(self, filt: list[str], week: list[bool], time_blk: list[bool]):
         selected_wk, selected_time_blk = self.convert_bool_to_filter(week,time_blk)
-        return self.df.loc[(self.df["ORIGIN"] == flight[0]) &
-                            (self.df["DEST"] == flight[1]) &
+        return self.df.loc[(self.df["ORIGIN"] == filt[0]) &
+                            (self.df["DEST"] == filt[1]) &
                             (self.df["WEEK"].isin(selected_wk)) &
                             (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
 
 class SearchByAirport(SearchState):
-    def sort_data(self, airport: list[str], week: list[bool], time_blk: list[bool]):
+    """
+    A state for sorting the dataframe using airport as the filter
+    """
+    def sort_data(self, filt: list[str], week: list[bool], time_blk: list[bool]):
         selected_wk, selected_time_blk = self.convert_bool_to_filter(week,time_blk)
-        return self.df.loc[(self.df["ORIGIN"] == airport[0]) &
+        return self.df.loc[(self.df["ORIGIN"] == filt[0]) &
                            (self.df["WEEK"].isin(selected_wk)) &
                            (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
 
 class SearchByAirline(SearchState):
-    def sort_data(self, airline: list[int], week:list[bool], time_blk: list[bool]):
+    """
+    A state for sorting the dataframe using airline as the filter
+    """
+    def sort_data(self, filt: list[int], week:list[bool], time_blk: list[bool]):
         selected_wk, selected_time_blk = self.convert_bool_to_filter(week,time_blk)
-        return self.df.loc[(self.df["OP_CARRIER_AIRLINE_ID"] == airline[0]) &
+        return self.df.loc[(self.df["OP_CARRIER_AIRLINE_ID"] == filt[0]) &
                            (self.df["WEEK"].isin(selected_wk)) &
                            (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
 
