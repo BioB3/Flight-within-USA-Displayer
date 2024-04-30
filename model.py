@@ -40,7 +40,7 @@ class Observer(ABC):
         """
         pass
 
-class Flight_Data_Model(Subject):
+class FlightDataModel(Subject):
     """
     Model for computing data from the datasets
     """
@@ -48,13 +48,27 @@ class Flight_Data_Model(Subject):
     
     def __init__(self) -> None:
         self.__df = self.gen_df()
-        self.__avg_delay: pd.DataFrame
-        self.__states = [Search_by_Flight(self.__df)]
+        self.__sorted_df: pd.DataFrame
+        self.__states = [SearchByFlight(self.__df),
+                         SearchByAirport(self.__df),
+                         SearchByAirline(self.__df)]
+        self.__graph_type = ["average delay",
+                             "% on-time",
+                             "% time blk"]
         self.__current_state = self.__states[0]
+        self.__sel_graph = self.__graph_type[0]
+    
+    @property
+    def df(self):
+        return self.__df
 
     @property
-    def avg_delay(self):
-        return self.__avg_delay
+    def sorted_df(self):
+        return self.__sorted_df
+
+    @property
+    def graph_type(self):
+        return self.__graph_type
 
     def gen_df(self):
         """
@@ -102,11 +116,14 @@ class Flight_Data_Model(Subject):
     def set_state(self, index: int):
         self.__current_state = self.__states[index]
 
-    def get_avg_delay_data(self, flight: list[str], week: list[bool],
-                         time_blk: list[bool]):
-        self.__avg_delay = self.__current_state.create_avg_delay(flight, week, time_blk)
+    def set_sel_graph(self, index: int):
+        self.__sel_graph = self.__graph_type[index]
 
-class Search_state(ABC):
+    def sort_data(self, a_code: list[str], week: list[bool],
+                         time_blk: list[bool]):
+        self.__sorted_df = self.__current_state.sort_data(a_code, week, time_blk)
+
+class SearchState(ABC):
     """
     Abstract class for state that contain the model's function
     """
@@ -126,54 +143,46 @@ class Search_state(ABC):
         """
         return self._df
     
-    @abstractmethod
-    def create_avg_delay(self):
+    def convert_bool_to_filter(self, week: list[bool], time_blk: list[bool]):
         """
-        Create a dataframe with data needed to plot a graph of average delay time
+        Convert list of boolean into list of filter option selected
         """
-        pass
+        wk = [i+1 for i in range(5) if week[i]]
+        t_bk = [self._time_blk_dict[i] for i in range(5) if time_blk[i]]
+        return wk, t_bk
     
     @abstractmethod
-    def create_pencent_on_time(self):
+    def sort_data(self):
         """
-        Create a dataframe with data needed to plot a graph of percentage of flight
-        departing on-time, with delay, diverted, or canceled
-        """
-        pass
-    
-    @abstractmethod
-    def create_percent_time_blk(self):
-        """
-        Create a dataframe with data needed to plot a graph of percentage of flight
-        in each time block
+        Return a sorted dataframe based on the filter.
         """
         pass
 
-class Search_by_Flight(Search_state):
-    def __init__(self, dataframe: pd.DataFrame) -> None:
-        super().__init__(dataframe)
-
-    def create_avg_delay(self, flight: list[str], week: list[bool],
-                         time_blk: list[bool]):
-        selected_wk = [i+1 for i in range(5) if week[i]]
-        selected_time_blk = [self._time_blk_dict[i] for i in range(5) if time_blk[i]]
+class SearchByFlight(SearchState):
+    def sort_data(self, flight: list[str], week: list[bool], time_blk: list[bool]):
+        selected_wk, selected_time_blk = self.convert_bool_to_filter(week,time_blk)
         return self.df.loc[(self.df["ORIGIN"] == flight[0]) &
                             (self.df["DEST"] == flight[1]) &
                             (self.df["WEEK"].isin(selected_wk)) &
                             (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
-    
-    def create_pencent_on_time(self, flight: list[str], week: list[bool],
-                         time_blk: list[bool]):
-        pass
-    
-    def create_percent_time_blk(self, flight: list[str], week: list[bool],
-                         time_blk: list[bool]):
-        pass
+
+class SearchByAirport(SearchState):
+    def sort_data(self, airport: list[str], week: list[bool], time_blk: list[bool]):
+        selected_wk, selected_time_blk = self.convert_bool_to_filter(week,time_blk)
+        return self.df.loc[(self.df["ORIGIN"] == airport[0]) &
+                           (self.df["WEEK"].isin(selected_wk)) &
+                           (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
+
+class SearchByAirline(SearchState):
+    def sort_data(self, airline: list[int], week:list[bool], time_blk: list[bool]):
+        selected_wk, selected_time_blk = self.convert_bool_to_filter(week,time_blk)
+        return self.df.loc[(self.df["OP_CARRIER_AIRLINE_ID"] == airline[0]) &
+                           (self.df["WEEK"].isin(selected_wk)) &
+                           (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
 
 
 if __name__ == "__main__":
-    data = Flight_Data_Model()
-    data.get_avg_delay_data(["TUL","ORD"],
-                            [True,False,False,False,False],
-                            [True,True,True,True,True])
-    print(data.avg_delay)
+    data = FlightDataModel()
+    data.set_state(2)
+    data.sort_data([20366], [True,False,False,False,False], [True,True,True,True,True])
+    print(data.sorted_df)
