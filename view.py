@@ -19,7 +19,14 @@ class UI(tk.Tk, Observer):
     def init_notebook(self):
         notebook = ttk.Notebook(self)
         notebook.add(FlightTab(self), text="Search by Flight")
+        notebook.add(FlightTab(self), text="Exit")
         notebook.pack(expand=True, fill="both")
+        notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
+        
+    def on_tab_change(self, event):
+        tab = event.widget.tab('current')['text']
+        if tab == 'Exit':
+            self.destroy()
 
     def run(self):
         self.mainloop()
