@@ -1,10 +1,13 @@
 """User interface for Flight within USA displayer"""
 from tkinter import ttk, font
 from model import FlightDataModel, Observer
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.figure import Figure
 from abc import ABC, abstractmethod
 import tkinter as tk
-import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib
+matplotlib.use("TkAgg")
 
 class UI(tk.Tk, Observer):
     def __init__ (self, controller, model:FlightDataModel) -> None:
@@ -93,11 +96,13 @@ class FlightTab(SearchTab):
         self.init_components()
         
     def init_components(self):
+        self.__graph = GraphFrame(self)
         self.__sort_bar = SortBar(self)
         self.__sort_bar.add_cb_boxes("Origin Airport:", self.AIRPORTS)
         self.__sort_bar.add_cb_boxes("Destination Airport:", self.AIRPORTS)
         self.__sort_bar.add_checkboxes()
-        self.__sort_bar.pack(side="right")
+        self.__graph.pack(side="left", fill="both", expand=True)
+        self.__sort_bar.pack(side="right", padx=10)
 
 class SortBar(tk.Frame):
     def __init__(self, parent, **kwargs) -> None:
@@ -168,13 +173,25 @@ class ComboboxFrame(tk.Frame):
         else:
             option = []
             for item in self.__load:
-                if inputted_val.upper() in item:
+                if item.startswith(inputted_val.upper()):
                     option.append(item)
             self.__cb_box["values"] = option
-        
 
+class GraphFrame(tk.Frame, ABC):
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.init_components()
 
-if __name__ == "__main__":
-    data_cal = FlightDataModel()
-    test_ui = UI(data_cal)
-    test_ui.run()
+    def init_components(self):
+        self.__fig = Figure()
+        self.__canvas = FigureCanvasTkAgg(self.__fig, self)
+        toolbar = NavigationToolbar2Tk(self.__canvas, self)
+        toolbar.update()
+        self.__canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
+
+    def plot_graph(self, data):
+        sns.lineplot(data)
+        self.__canvas.draw()
+    
+    def add_buttons(self):
+        pass
