@@ -48,7 +48,7 @@ class FlightDataModel(Subject):
 
     def __init__(self) -> None:
         self.__df = self.gen_df()
-        self.__sorted_df: pd.DataFrame
+        self.__avg_delay : pd.Series
         self.__states = [SearchByFlight(self.__df),
                          SearchByAirport(self.__df),
                          SearchByAirline(self.__df)]
@@ -67,18 +67,22 @@ class FlightDataModel(Subject):
         return self.__df
 
     @property
-    def sorted_df(self):
+    def avg_delay(self):
         """
-        Getter for sorted_df attribute
+        Getter for avg_delay attribute
         """
-        return self.__sorted_df
+        return self.__avg_delay
+
+    @avg_delay.setter
+    def avg_delay(self, value):
+        self.__avg_delay = value
 
     @property
-    def graph_type(self):
+    def sel_graph(self):
         """
-        Getter for graph_type attribute
+        Getter for sel_graph attribute
         """
-        return self.__graph_type
+        return self.__sel_graph
 
     def gen_df(self):
         """
@@ -136,11 +140,12 @@ class FlightDataModel(Subject):
         """
         self.__sel_graph = self.__graph_type[index]
 
-    def sort_data(self, a_code: list[str], week: list[bool], time_blk: list[bool]):
+    def get_avg_data(self, a_code: list[str], week: list[bool], time_blk: list[bool]):
         """
         Sort the dataframe using the parameters as filter
         """
-        self.__sorted_df = self.__current_state.sort_data(a_code, week, time_blk)
+        self.avg_delay = self.__current_state.avg_flight_delay(a_code, week, time_blk)
+        self.notify()
 
 class SearchState(ABC):
     """
@@ -187,6 +192,11 @@ class SearchByFlight(SearchState):
                             (self.df["DEST"] == filt[1]) &
                             (self.df["WEEK"].isin(selected_wk)) &
                             (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
+    
+    def avg_flight_delay(self, filt: list[str], week: list[bool], time_blk: list[bool]):
+        temp_df = self.sort_data(filt, week, time_blk)[["DEP_DELAY","ARR_DELAY","WEEK"]]
+        return temp_df.groupby("WEEK").mean()
+        
 
 class SearchByAirport(SearchState):
     """
