@@ -5,51 +5,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 from abc import ABC, abstractmethod
 import tkinter as tk
-import seaborn as sns
 import matplotlib
+import threading
 matplotlib.use("TkAgg")
-
-AIRPORTS = ['ABE', 'ABI', 'ABQ', 'ABR', 'ABY', 'ACT', 'ACV', 'ACY', 'ADK',
-            'ADQ', 'AEX', 'AGS', 'ALB', 'ALO', 'AMA', 'ANC', 'APN', 'ASE',
-            'ATL', 'ATW', 'ATY', 'AUS', 'AVL', 'AVP', 'AZA', 'AZO', 'BDL',
-            'BET', 'BFF', 'BFL', 'BFM', 'BGM', 'BGR', 'BHM', 'BIL', 'BIS',
-            'BJI', 'BLI', 'BLV', 'BMI', 'BNA', 'BOI', 'BOS', 'BPT', 'BQK',
-            'BQN', 'BRD', 'BRO', 'BRW', 'BTM', 'BTR', 'BTV', 'BUF', 'BUR',
-            'BWI', 'BZN', 'CAE', 'CAK', 'CDC', 'CDV', 'CGI', 'CHA', 'CHO',
-            'CHS', 'CID', 'CIU', 'CKB', 'CLE', 'CLL', 'CLT', 'CMH', 'CMI',
-            'CMX', 'CNY', 'COD', 'COS', 'COU', 'CPR', 'CRP', 'CRW', 'CSG',
-            'CVG', 'CWA', 'CYS', 'DAB', 'DAL', 'DAY', 'DBQ', 'DCA', 'DEN',
-            'DFW', 'DHN', 'DLH', 'DRO', 'DRT', 'DSM', 'DTW', 'DVL', 'EAR',
-            'EAU', 'ECP', 'EGE', 'EKO', 'ELM', 'ELP', 'ERI', 'ESC', 'EUG',
-            'EVV', 'EWN', 'EWR', 'EYW', 'FAI', 'FAR', 'FAT', 'FAY', 'FCA',
-            'FLG', 'FLL', 'FNT', 'FSD', 'FSM', 'FWA', 'GCC', 'GCK', 'GEG',
-            'GFK', 'GGG', 'GJT', 'GNV', 'GPT', 'GRB', 'GRI', 'GRK', 'GRR',
-            'GSO', 'GSP', 'GTF', 'GTR', 'GUC', 'GUM', 'HDN', 'HGR', 'HHH',
-            'HIB', 'HLN', 'HNL', 'HOB', 'HOU', 'HPN', 'HRL', 'HSV', 'HTS',
-            'HVN', 'HYS', 'IAD', 'IAG', 'IAH', 'ICT', 'IDA', 'ILM', 'IMT',
-            'IND', 'INL', 'ISP', 'ITH', 'ITO', 'JAC', 'JAN', 'JAX', 'JFK',
-            'JLN', 'JMS', 'JNU', 'KOA', 'KTN', 'LAN', 'LAR', 'LAS', 'LAW',
-            'LAX', 'LBB', 'LBE', 'LBF', 'LBL', 'LCH', 'LCK', 'LEX', 'LFT',
-            'LGA', 'LGB', 'LIH', 'LIT', 'LNK', 'LRD', 'LSE', 'LWB', 'LWS',
-            'LYH', 'MAF', 'MBS', 'MCI', 'MCO', 'MDT', 'MDW', 'MEI', 'MEM',
-            'MFE', 'MFR', 'MGM', 'MHK', 'MHT', 'MIA', 'MKE', 'MKG', 'MLB',
-            'MLI', 'MLU', 'MMH', 'MOB', 'MOT', 'MQT', 'MRY', 'MSN', 'MSO',
-            'MSP', 'MSY', 'MTJ', 'MYR', 'OAJ', 'OAK', 'OGD', 'OGG', 'OGS',
-            'OKC', 'OMA', 'OME', 'ONT', 'ORD', 'ORF', 'ORH', 'OTH', 'OTZ',
-            'OWB', 'PAE', 'PAH', 'PBG', 'PBI', 'PDX', 'PGD', 'PHF', 'PHL',
-            'PHX', 'PIA', 'PIB', 'PIE', 'PIH', 'PIR', 'PIT', 'PLN', 'PNS',
-            'PPG', 'PRC', 'PSC', 'PSE', 'PSG', 'PSM', 'PSP', 'PUB', 'PVD',
-            'PVU', 'PWM', 'RAP', 'RDD', 'RDM', 'RDU', 'RFD', 'RHI', 'RIC',
-            'RIW', 'RKS', 'RNO', 'ROA', 'ROC', 'ROW', 'RST', 'RSW', 'SAF',
-            'SAN', 'SAT', 'SAV', 'SBA', 'SBN', 'SBP', 'SCC', 'SCE', 'SCK',
-            'SDF', 'SEA', 'SFB', 'SFO', 'SGF', 'SGU', 'SHD', 'SHR', 'SHV',
-            'SIT', 'SJC', 'SJT', 'SJU', 'SLC', 'SLN', 'SMF', 'SMX', 'SNA',
-            'SPI', 'SPN', 'SPS', 'SRQ', 'STC', 'STL', 'STS', 'STT', 'STX',
-            'SUN', 'SUX', 'SWF', 'SWO', 'SYR', 'TLH', 'TOL', 'TPA', 'TRI',
-            'TTN', 'TUL', 'TUS', 'TVC', 'TWF', 'TXK', 'TYR', 'TYS', 'UIN',
-            'USA', 'VEL', 'VLD', 'VPS', 'WRG', 'XNA', 'XWA', 'YAK', 'YUM']
-AIRLINES = [19393, 19690, 19790, 19805, 19930, 19977, 20304, 20363, 20366,
-            20368, 20378, 20397, 20398, 20409, 20416, 20436, 20452]
 
 class UI(tk.Tk, Observer):
     def __init__ (self, controller, model:FlightDataModel) -> None:
@@ -59,7 +17,7 @@ class UI(tk.Tk, Observer):
         self.__model = model
         self.__tabs = {}
         self.default_font = font.nametofont('TkDefaultFont')
-        self.default_font.configure(family='Arial TUR', size=12)
+        self.default_font.configure(family='Times', size=12)
         self.init_components()
 
     @property
@@ -75,11 +33,13 @@ class UI(tk.Tk, Observer):
         return self.__notebook
 
     def init_components(self):
+        airport_codes = self.model.df.groupby("ORIGIN")["DEST"].apply(set)
+        airline_codes = sorted(self.model.df["OP_CARRIER_AIRLINE_ID"].unique())
         self.__notebook = ttk.Notebook(self)
-        flight_tab = FlightTab(self, self.controller)
+        flight_tab = FlightTab(self, self.controller, airport_codes)
         self.__notebook.add(flight_tab, text="Search by Flight")
         self.__tabs["Search by Flight"] = flight_tab
-        self.__notebook.add(ExitTab(self), text="Exit")
+        self.__notebook.add(tk.Frame(self), text="Exit")
         self.__notebook.pack(expand=True, fill="both")
         self.__notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
         
@@ -95,53 +55,79 @@ class UI(tk.Tk, Observer):
     def run(self):
         self.mainloop()
 
-    def update(self, *args):
-        if self.model.sel_graph == "average delay":
-            self.get_cur_tab().graph.plot_graph(self.model.avg_delay)
+    def update(self):
+        update_thread = threading.Thread(target=self.update_graph)
+        update_thread.start()
 
-class FlightTab(tk.Frame):
-    def __init__(self, parent, controller, **kwargs) -> None:
+    def update_graph(self):
+        self.get_cur_tab().graph.plot_graph(self.model.sorted, self.model.sel_graph)
+
+class SearchTab(tk.Frame, ABC):
+    def __init__(self, parent, controller, data, **kwargs) -> None:
         super().__init__(parent, **kwargs)
         self.controller = controller
+        self.data = data
         self.init_components()
-        
+
     def init_components(self):
         left_frame = tk.Frame(self)
         self.graph = GraphFrame(left_frame)
         self.sort_bar = SortBar(self)
-        self.sort_bar.add_cb_boxes("Origin Airport:", AIRPORTS)
-        self.sort_bar.add_cb_boxes("Destination Airport:", AIRPORTS)
-        self.sort_bar.add_checkboxes()
-        self.avg_delay = tk.Button(left_frame, text="Average Delay", command=self.handle_button)
+        button_frame = tk.Frame(left_frame)
+        avg_delay = tk.Button(button_frame, text="Average Delay",
+                                   command=self.handle_avg_button)
+        on_time = tk.Button(button_frame, text="% On-time Flight",
+                                 command=self.handle_on_time_button)
+        time_blk = tk.Button(button_frame, text="% Departure Time Block",
+                             command=self.handle_time_blk_button)
         self.graph.pack(side="top", fill="both", expand=True)
-        self.sort_bar.pack(side="right", padx=10)
-        self.avg_delay.pack(side="bottom")
+        avg_delay.pack(side="left")
+        on_time.pack(side="left")
+        time_blk.pack(side="left")
+        button_frame.pack(side="bottom")
         left_frame.pack(side="left", fill="both", expand=True)
+        self.sort_bar.pack(side="right", padx=10)
+        self.sort_bar.add_label("*There're some flights reported*\n"+
+                                "*as delayed without delay time*")
+        self.sort_bar.add_checkboxes()
 
-    def get_selected_a(self):
-        filt = []
+    def get_selected_filter(self):
+        a_code = []
         for combo_box in self.sort_bar.cb_list:
-            filt.append(combo_box.cb_val)
-        return filt
+            a_code.append(combo_box.cb_val)
+        wk = self.sort_bar.checkboxes.week_var
+        tb = self.sort_bar.checkboxes.time_blk_var
+        return a_code, wk, tb
 
-    def get_selected_wk(self):
-        return self.sort_bar.checkboxes.week_var
+    def get_available_dest(self):
+        selected = self.sort_bar.cb_list[0].cb_val
+        return sorted(self.data[selected])
 
-    def get_selected_tb(self):
-        return self.sort_bar.checkboxes.time_blk_var
+    def update_lower_box(self, *args):
+        new_load = self.get_available_dest()
+        self.sort_bar.cb_list[1].update_load(new_load)
 
-    def handle_button(self, *args):
-        a_code = self.get_selected_a()
-        wk = self.get_selected_wk()
-        tb = self.get_selected_tb()
+    def handle_avg_button(self, *args):
+        a_code, wk, tb = self.get_selected_filter()
         self.controller.avg_delay_flight(a_code, wk, tb)
 
-class ExitTab(tk.Frame):
-    def __init__(self, parent, **kwargs) -> None:
-        super().__init__(parent, **kwargs)
+    def handle_on_time_button(self, *args):
+        a_code, wk, tb = self.get_selected_filter()
+        self.controller.percent_on_time(a_code, wk, tb)
 
-    def init_components(self):
-        pass
+    def handle_time_blk_button(self, *args):
+        a_code, wk, tb = self.get_selected_filter()
+        self.controller.percent_time_blk(a_code, wk, tb)
+
+class FlightTab(SearchTab):
+    def __init__(self, parent, controller, data, **kwargs) -> None:
+        super().__init__(parent, controller, data, **kwargs)
+        self.init_sort_bar()
+
+    def init_sort_bar(self):
+        self.sort_bar.add_cb_box("Origin Airport:", sorted(self.data.keys()))
+        self.sort_bar.add_cb_box("Destination Airport:", self.get_available_dest())
+        self.sort_bar.cb_list[0].bind(self.update_lower_box, "+")
 
 class SortBar(tk.Frame):
     def __init__(self, parent, **kwargs) -> None:
@@ -156,14 +142,18 @@ class SortBar(tk.Frame):
     def checkboxes(self):
         return self.__checkboxes
 
-    def add_cb_boxes(self, label: str, load: list):
+    def add_cb_box(self, label: str, load: list):
         cb_frame = ComboboxFrame(self, label, load)
         self.__cb_list.append(cb_frame)
-        cb_frame.pack()
-    
+        cb_frame.pack(side="top")
+
     def add_checkboxes(self):
         self.__checkboxes = CheckBoxFrame(self)
-        self.__checkboxes.pack()
+        self.__checkboxes.pack(side="bottom")
+
+    def add_label(self, text:str):
+        label = tk.Label(self, text=text)
+        label.pack(side="bottom")
 
 class CheckBoxFrame(tk.Frame):
     WEEK = ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5"]
@@ -217,6 +207,14 @@ class ComboboxFrame(tk.Frame):
         self.__cb_box.pack()
         self.__cb_box.bind("<KeyRelease>", self.search)
 
+    def bind(self, func=None, add=None):
+        self.__cb_box.bind("<<ComboboxSelected>>", func, add)
+
+    def update_load(self, new_load):
+        self.__load = new_load
+        self.__cb_box["values"] = self.__load
+        self.__cb_box.current(newindex=0)
+
     def search(self, event):
         inputted_val = event.widget.get()
         if not inputted_val:
@@ -240,9 +238,25 @@ class GraphFrame(tk.Frame):
         toolbar.update()
         self.__canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
 
-    def plot_graph(self, data):
+    def plot_graph(self, data, g_type):
         fig = Figure()
         ax = fig.subplots()
-        sns.lineplot(data=data, ax=ax)
+        if g_type == "average delay":
+            ax.set_xlabel("Week of the Month")
+            ax.set_ylabel("Average Delay Time (mins)")
+            ax.set_title("Average Delays")
+            ax.plot(data.index, data["DEP_DELAY"], label="Departure Delay")
+            ax.plot(data.index, data["ARR_DELAY"], label="Arrival Delay")
+            ax.legend()
+        elif g_type == "% on-time":
+            slices, texts, number = ax.pie(data, autopct="%1.1f%%", pctdistance=1.15)
+            ax.set_title("Percentage of Flight departing on-time")
+            ax.legend(slices, data.index, title="Flight", loc="upper left",
+                      bbox_to_anchor=(-0.35,1))
+        elif g_type == "% time blk":
+            slices, texts, number = ax.pie(data, autopct="%1.1f%%", pctdistance=1.15)
+            ax.set_title("Percentage of Flight in each Time Block")
+            ax.legend(slices, data.index, title="Time Block", loc="upper left",
+                      bbox_to_anchor=(-0.35,1))
         self.__canvas.figure = fig
         self.__canvas.draw()
