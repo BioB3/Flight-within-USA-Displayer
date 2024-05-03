@@ -240,36 +240,24 @@ class SearchByAirport(SearchState):
     A state for sorting the dataframe using airport as the filter
     """
     def sort_data(self, filt: list[str], week: list[bool], time_blk: list[bool]):
-        pass
-
-    def avg_flight_delay(self, filt: list[str], week: list[bool], time_blk: list[bool]):
-        pass
-
-    def percent_on_time(self, filt: list[str], week: list[bool], time_blk: list[bool]):
-        pass
-
-    def percent_time_block(self, filt: list[str], week: list[bool], time_blk: list[bool]):
-        pass
+        selected_wk, selected_time_blk = self.convert_bool_to_filter(week,time_blk)
+        return self.df.loc[(self.df["ORIGIN"] == filt[0]) &
+                           (self.df["WEEK"].isin(selected_wk)) &
+                           (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
 
 class SearchByAirline(SearchState):
     """
     A state for sorting the dataframe using airline as the filter
     """
     def sort_data(self, filt: list[str], week: list[bool], time_blk: list[bool]):
-        pass
-
-    def avg_flight_delay(self, filt: list[str], week: list[bool], time_blk: list[bool]):
-        pass
-
-    def percent_on_time(self, filt: list[str], week: list[bool], time_blk: list[bool]):
-        pass
-
-    def percent_time_block(self, filt: list[str], week: list[bool], time_blk: list[bool]):
-        pass
+        selected_wk, selected_time_blk = self.convert_bool_to_filter(week,time_blk)
+        return self.df.loc[(self.df["OP_CARRIER_AIRLINE_ID"] == list(map(float, filt))[0]) &
+                           (self.df["WEEK"].isin(selected_wk)) &
+                           self.df["DEP_TIME_BLK"].isin(selected_time_blk)]
 
 
 if __name__ == "__main__":
     data = FlightDataModel()
     data.set_state(2)
-    data.sort_data(["20366"], [True,False,False,False,False], [True,True,True,True,True])
-    print(data.sorted_df)
+    data.get_avg_data(["20366"], [True,True,True,True,True], [True,True,True,True,True])
+    print(data.sorted)

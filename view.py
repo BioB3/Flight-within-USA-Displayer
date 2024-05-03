@@ -39,13 +39,25 @@ class UI(tk.Tk, Observer):
         flight_tab = FlightTab(self, self.controller, airport_codes)
         self.__notebook.add(flight_tab, text="Search by Flight")
         self.__tabs["Search by Flight"] = flight_tab
+        airport_tab = AirportTab(self, self.controller, airport_codes)
+        self.__notebook.add(airport_tab, text="Search by Airport")
+        self.__tabs["Search by Airport"] = airport_tab
+        airline_tab = AirlineTab(self, self.controller, airline_codes)
+        self.__notebook.add(airline_tab, text="Search by Airline")
+        self.__tabs["Search by Airline"] = airline_tab
         self.__notebook.add(tk.Frame(self), text="Exit")
         self.__notebook.pack(expand=True, fill="both")
         self.__notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
         
     def on_tab_change(self, event):
         tab = event.widget.tab('current')['text']
-        if tab == 'Exit':
+        if tab == "Search by Flight":
+            self.controller.set_search_type(0)
+        elif tab == "Search by Airport":
+            self.controller.set_search_type(1)
+        elif tab == "Search by Airline":
+            self.controller.set_search_type(2)
+        else:
             self.destroy()
 
     def get_cur_tab(self):
@@ -117,7 +129,11 @@ class SearchTab(tk.Frame, ABC):
 
     def handle_time_blk_button(self, *args):
         a_code, wk, tb = self.get_selected_filter()
-        self.controller.percent_time_blk(a_code, wk, tb)
+        self.controller.percent_time_blk(a_code, wk, tb)\
+
+    @abstractmethod
+    def init_sort_bar(self):
+        raise NotImplementedError
 
 class FlightTab(SearchTab):
     def __init__(self, parent, controller, data, **kwargs) -> None:
@@ -128,6 +144,22 @@ class FlightTab(SearchTab):
         self.sort_bar.add_cb_box("Origin Airport:", sorted(self.data.keys()))
         self.sort_bar.add_cb_box("Destination Airport:", self.get_available_dest())
         self.sort_bar.cb_list[0].bind(self.update_lower_box, "+")
+
+class AirportTab(SearchTab):
+    def __init__(self, parent, controller, data, **kwargs) -> None:
+        super().__init__(parent, controller, data, **kwargs)
+        self.init_sort_bar()
+        
+    def init_sort_bar(self):
+        self.sort_bar.add_cb_box("Airport:", sorted(self.data.keys()))
+
+class AirlineTab(SearchTab):
+    def __init__(self, parent, controller, data, **kwargs) -> None:
+        super().__init__(parent, controller, data, **kwargs)
+        self.init_sort_bar()
+
+    def init_sort_bar(self):
+        self.sort_bar.add_cb_box("Airline ID:", self.data)
 
 class SortBar(tk.Frame):
     def __init__(self, parent, **kwargs) -> None:
@@ -245,18 +277,21 @@ class GraphFrame(tk.Frame):
             ax.set_xlabel("Week of the Month")
             ax.set_ylabel("Average Delay Time (mins)")
             ax.set_title("Average Delays")
-            ax.plot(data.index, data["DEP_DELAY"], label="Departure Delay")
-            ax.plot(data.index, data["ARR_DELAY"], label="Arrival Delay")
+            ax.plot(data.index, data["DEP_DELAY"], label="Departure Delay", color="lime")
+            ax.plot(data.index, data["ARR_DELAY"], label="Arrival Delay", color="red")
             ax.legend()
-        elif g_type == "% on-time":
-            slices, texts, number = ax.pie(data, autopct="%1.1f%%", pctdistance=1.15)
-            ax.set_title("Percentage of Flight departing on-time")
-            ax.legend(slices, data.index, title="Flight", loc="upper left",
-                      bbox_to_anchor=(-0.35,1))
-        elif g_type == "% time blk":
-            slices, texts, number = ax.pie(data, autopct="%1.1f%%", pctdistance=1.15)
-            ax.set_title("Percentage of Flight in each Time Block")
-            ax.legend(slices, data.index, title="Time Block", loc="upper left",
-                      bbox_to_anchor=(-0.35,1))
+        else:
+            colors = ["lime","darkorange","cyan","red","magenta"]
+            slices, texts = ax.pie(data, colors=colors, startangle=90)
+            percent = 100.*data/data.sum()
+            labels = ['{0} - {1:1.2f} %'.format(i, j) for i, j in zip(data.index,percent)]
+            if g_type == "% on-time":
+                ax.set_title("Percentage of Flight departing on-time")
+                ax.legend(slices, labels, title="Flight", loc="lower left",
+                        bbox_to_anchor=(-0.35,0), fontsize=8)
+            else:
+                ax.set_title("Percentage of Flight in each Time Block")
+                ax.legend(slices, labels, title="Time Block", loc="lower left",
+                        bbox_to_anchor=(-0.35,0), fontsize=8)
         self.__canvas.figure = fig
         self.__canvas.draw()
