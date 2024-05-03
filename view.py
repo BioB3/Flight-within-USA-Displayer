@@ -82,10 +82,20 @@ class SearchTab(tk.Frame, ABC):
         self.init_components()
 
     def init_components(self):
-        left_frame = tk.Frame(self)
-        self.graph = GraphFrame(left_frame)
+        # self.text = tk.Text(self, width=30, state=tk.DISABLED)
+        graph_and_bt = self.create_graph_and_buttons()
         self.sort_bar = SortBar(self)
-        button_frame = tk.Frame(left_frame)
+        self.sort_bar.add_label("*There're some flights reported*\n"+
+                                "*as delayed without delay time*")
+        self.sort_bar.add_checkboxes()
+        # self.text.pack(side="left", fill="y")
+        graph_and_bt.pack(side="left", fill="both",expand="True")
+        self.sort_bar.pack(side="right", padx=10)
+
+    def create_graph_and_buttons(self):
+        center_frame = tk.Frame(self)
+        self.graph = GraphFrame(center_frame)
+        button_frame = tk.Frame(center_frame)
         avg_delay = tk.Button(button_frame, text="Average Delay",
                                    command=self.handle_avg_button)
         on_time = tk.Button(button_frame, text="% On-time Flight",
@@ -97,11 +107,7 @@ class SearchTab(tk.Frame, ABC):
         on_time.pack(side="left")
         time_blk.pack(side="left")
         button_frame.pack(side="bottom")
-        left_frame.pack(side="left", fill="both", expand=True)
-        self.sort_bar.pack(side="right", padx=10)
-        self.sort_bar.add_label("*There're some flights reported*\n"+
-                                "*as delayed without delay time*")
-        self.sort_bar.add_checkboxes()
+        return center_frame
 
     def get_selected_filter(self):
         a_code = []
@@ -193,10 +199,11 @@ class CheckBoxFrame(tk.Frame):
     
     def __init__(self, parent, **kwargs) -> None:
         super().__init__(parent, **kwargs)
+        self.wk_numpicks = 5
         self.__week_var = [tk.BooleanVar(value=True) for _ in range(5)]
         self.__time_blk_var = [tk.BooleanVar(value=True) for _ in range(5)]
         self.init_components()
-    
+
     @property
     def week_var(self):
         week_lst = [var.get() for var in self.__week_var]
@@ -208,16 +215,30 @@ class CheckBoxFrame(tk.Frame):
         return time_blk_lst
 
     def init_components(self):
-        week_label = tk.Label(self,text="Week of the month:")
+        week_label = tk.Label(self,text="Week of the month(min: 2):")
         week_label.pack(anchor="w")
         for _ in range(5):
-            checkbox = tk.Checkbutton(self, text=self.WEEK[_], variable=self.__week_var[_])
+            checkbox = tk.Checkbutton(self, text=self.WEEK[_],
+                                      variable=self.__week_var[_],
+                                      command=(self.checkmin(self.__week_var[_],2)))
             checkbox.pack(anchor="w")
         time_blk_label = tk.Label(self,text="Departure time block:")
         time_blk_label.pack(anchor="w")
         for _ in range(5):
-            checkbox = tk.Checkbutton(self, text=self.TIME_BLK[_], variable=self.__time_blk_var[_])
-            checkbox.pack(anchor="w")        
+            checkbox = tk.Checkbutton(self, text=self.TIME_BLK[_],
+                                      variable=self.__time_blk_var[_],)
+            checkbox.pack(anchor="w")
+
+    def checkmin(self, var, minpick):
+        def _check_num():
+            if not var.get():
+                if self.wk_numpicks > minpick:
+                    self.wk_numpicks -= 1
+                else:
+                    var.set(True)
+            else:
+                self.wk_numpicks += 1
+        return _check_num
 
 class ComboboxFrame(tk.Frame):
     def __init__(self, parent, label: str, load: list, **kwargs) -> None:
@@ -274,12 +295,14 @@ class GraphFrame(tk.Frame):
         fig = Figure()
         ax = fig.subplots()
         if g_type == "average delay":
+            tick_label = [f"Week {i}" for i in data.index]
             ax.set_xlabel("Week of the Month")
             ax.set_ylabel("Average Delay Time (mins)")
             ax.set_title("Average Delays")
+            ax.set_xticks(data.index, tick_label)
             ax.plot(data.index, data["DEP_DELAY"], label="Departure Delay", color="lime")
             ax.plot(data.index, data["ARR_DELAY"], label="Arrival Delay", color="red")
-            ax.legend()
+            ax.legend(loc="lower left", bbox_to_anchor=(0,1))
         else:
             colors = ["lime","darkorange","cyan","red","magenta"]
             slices, texts = ax.pie(data, colors=colors, startangle=90)
