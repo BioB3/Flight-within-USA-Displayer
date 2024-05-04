@@ -260,7 +260,10 @@ class SearchByFlight(SearchState):
                             (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
 
     def get_info_str(self, data: pd.DataFrame):
-        orgin_airport = data["ORIGIN"].unique()[0]
+        try:
+            orgin_airport = data["ORIGIN"].unique()[0]
+        except:
+            return f"No flights found"
         dest_airport = data["DEST"].unique()[0]
         num_flights = data["ORIGIN"].count()
         dist = data["DISTANCE"].unique()[0]
@@ -305,7 +308,10 @@ class SearchByAirport(SearchState):
                            (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
 
     def get_info_str(self, data: pd.DataFrame):
-        airport = data["ORIGIN"].unique()[0]
+        try:
+            airport = data["ORIGIN"].unique()[0]
+        except:
+            return f"No flights found"
         num_flights = data["ORIGIN"].count()
         airlines_delay = data[["OP_CARRIER_AIRLINE_ID",
                                "DEP_DELAY",
@@ -347,7 +353,10 @@ class SearchByAirline(SearchState):
                            self.df["DEP_TIME_BLK"].isin(selected_time_blk)]
 
     def get_info_str(self, data: pd.DataFrame):
-        airline_id = data["OP_CARRIER_AIRLINE_ID"].unique()[0]
+        try:
+            airline_id = data["OP_CARRIER_AIRLINE_ID"].unique()[0]
+        except:
+            return f"No flights found"
         num_flights = data["OP_CARRIER_AIRLINE_ID"].count()
         dep_stat = list(data["DEP_DELAY"].describe().values)
         arr_stat = list(data["ARR_DELAY"].describe().values)
