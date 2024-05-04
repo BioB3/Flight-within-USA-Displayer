@@ -82,13 +82,15 @@ class SearchTab(tk.Frame, ABC):
         self.init_components()
 
     def init_components(self):
-        # self.text = tk.Text(self, width=30, state=tk.DISABLED)
+        self.text = tk.Text(self, width=30)
+        self.text.insert("end", "To be Implemented")
+        self.text["state"] = "disabled"
         graph_and_bt = self.create_graph_and_buttons()
         self.sort_bar = SortBar(self)
         self.sort_bar.add_label("*There're some flights reported*\n"+
                                 "*as delayed without delay time*")
         self.sort_bar.add_checkboxes()
-        # self.text.pack(side="left", fill="y")
+        self.text.pack(side="left", fill="y")
         graph_and_bt.pack(side="left", fill="both",expand="True")
         self.sort_bar.pack(side="right", padx=10)
 
@@ -200,6 +202,7 @@ class CheckBoxFrame(tk.Frame):
     def __init__(self, parent, **kwargs) -> None:
         super().__init__(parent, **kwargs)
         self.wk_numpicks = 5
+        self.time_blk_numpicks = 5
         self.__week_var = [tk.BooleanVar(value=True) for _ in range(5)]
         self.__time_blk_var = [tk.BooleanVar(value=True) for _ in range(5)]
         self.init_components()
@@ -220,25 +223,35 @@ class CheckBoxFrame(tk.Frame):
         for _ in range(5):
             checkbox = tk.Checkbutton(self, text=self.WEEK[_],
                                       variable=self.__week_var[_],
-                                      command=(self.checkmin(self.__week_var[_],2)))
+                                      command=self.checkmin(self.__week_var[_],2,"wk"))
             checkbox.pack(anchor="w")
         time_blk_label = tk.Label(self,text="Departure time block:")
         time_blk_label.pack(anchor="w")
         for _ in range(5):
             checkbox = tk.Checkbutton(self, text=self.TIME_BLK[_],
-                                      variable=self.__time_blk_var[_],)
+                                      variable=self.__time_blk_var[_],
+                                      command=self.checkmin(self.__time_blk_var[_],1,"time_blk"))
             checkbox.pack(anchor="w")
 
-    def checkmin(self, var, minpick):
-        def _check_num():
+    def checkmin(self, var, minpick, check_type):
+        def update_num_picks():
             if not var.get():
-                if self.wk_numpicks > minpick:
-                    self.wk_numpicks -= 1
+                if check_type == "wk":
+                    if self.wk_numpicks > minpick:
+                        self.wk_numpicks -= 1
+                    else:
+                        var.set(True)
                 else:
-                    var.set(True)
+                    if self.time_blk_numpicks > minpick:
+                        self.time_blk_numpicks -= 1
+                    else:
+                        var.set(True)
             else:
-                self.wk_numpicks += 1
-        return _check_num
+                if check_type == "wk":
+                    self.wk_numpicks += 1
+                else:
+                    self.time_blk_numpicks += 1
+        return update_num_picks
 
 class ComboboxFrame(tk.Frame):
     def __init__(self, parent, label: str, load: list, **kwargs) -> None:
@@ -285,15 +298,15 @@ class GraphFrame(tk.Frame):
         self.init_components()
 
     def init_components(self):
-        self.__fig = Figure()
+        self.__fig = Figure(dpi=85)
         self.__canvas = FigureCanvasTkAgg(self.__fig, self)
         toolbar = NavigationToolbar2Tk(self.__canvas, self)
         toolbar.update()
         self.__canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
 
     def plot_graph(self, data, g_type):
-        fig = Figure()
-        ax = fig.subplots()
+        self.__fig.clf()
+        ax = self.__fig.subplots()
         if g_type == "average delay":
             tick_label = [f"Week {i}" for i in data.index]
             ax.set_xlabel("Week of the Month")
@@ -311,10 +324,9 @@ class GraphFrame(tk.Frame):
             if g_type == "% on-time":
                 ax.set_title("Percentage of Flight departing on-time")
                 ax.legend(slices, labels, title="Flight", loc="lower left",
-                        bbox_to_anchor=(-0.35,0), fontsize=8)
+                        bbox_to_anchor=(-0.33,0), fontsize=8)
             else:
                 ax.set_title("Percentage of Flight in each Time Block")
                 ax.legend(slices, labels, title="Time Block", loc="lower left",
-                        bbox_to_anchor=(-0.35,0), fontsize=8)
-        self.__canvas.figure = fig
+                        bbox_to_anchor=(-0.33,0), fontsize=8)
         self.__canvas.draw()
