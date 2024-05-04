@@ -44,20 +44,16 @@ class FlightDataModel(Subject):
     """
     Model for computing data from the datasets
     """
-    _observers : list[Observer] =  []
-
     def __init__(self) -> None:
         self.__df = self.gen_df()
-        self.__sorted : pd.Series
+        self.__sorted : pd.DataFrame
+        self.__series : pd.Series
+        self.__info : str
         self.__states = [SearchByFlight(self.__df),
                          SearchByAirport(self.__df),
                          SearchByAirline(self.__df)]
-        self.__graph_type = ["average delay",
-                             "% on-time",
-                             "% time blk"]
         self.__current_state: SearchState = self.__states[0]
-        self.__sel_graph = self.__graph_type[0]
-        self.__observers = []
+        self.observers = []
 
     @property
     def df(self):
@@ -81,11 +77,32 @@ class FlightDataModel(Subject):
         self.__sorted = value
 
     @property
-    def sel_graph(self):
+    def series(self):
         """
-        Getter for sel_graph attribute
+        Getter for series attribute
         """
-        return self.__sel_graph
+        return self.__series
+
+    @series.setter
+    def series(self, value):
+        """
+        Setter for series attribute
+        """
+        self.__series = value
+
+    @property
+    def info(self):
+        """
+        Getter for info attribute
+        """
+        return self.__info
+
+    @info.setter
+    def info(self, value):
+        """
+        Setter for info attribute
+        """
+        self.__info = value
 
     def gen_df(self):
         """
@@ -122,13 +139,13 @@ class FlightDataModel(Subject):
         return df3
 
     def attach(self, observer: Observer):
-        self.__observers.append(observer)
+        self.observers.append(observer)
 
     def detach(self, observer: Observer):
-        self.__observers.remove(observer)
+        self.observers.remove(observer)
 
     def notify(self):
-        for observer in self.__observers:
+        for observer in self.observers:
             observer.update()
 
     def set_state(self, index: int):
@@ -137,33 +154,30 @@ class FlightDataModel(Subject):
         """
         self.__current_state = self.__states[index]
 
-    def set_sel_graph(self, index: int):
-        """
-        Set the model's selected graph type
-        """
-        self.__sel_graph = self.__graph_type[index]
-
     def get_avg_data(self, a_code: list[str], week: list[bool], time_blk: list[bool]):
         """
         Update the sorted attribute to a Series required to plot a line graph of average delays
         """
-        self.sorted = self.__current_state.avg_flight_delay(a_code, week, time_blk)
+        self.sorted, self.series = self.__current_state.avg_flight_delay(a_code, week, time_blk)
+        self.info = self.__current_state.get_info_str(self.sorted)
         self.notify()
 
     def get_on_time_data(self, a_code: list[str], week: list[bool], time_blk: list[bool]):
         """
-        Update the sorted attribute to a Series required to plot a pie chart of percentage of flights
-        departing on time, with delay, diverted, or canceled
+        Update the sorted attribute to a Series required to plot a pie chart of percentage of
+        flights departing on time, with delay, diverted, or canceled
         """
-        self.sorted = self.__current_state.percent_on_time(a_code, week, time_blk)
+        self.sorted, self.series = self.__current_state.percent_on_time(a_code, week, time_blk)
+        self.info = self.__current_state.get_info_str(self.sorted)
         self.notify()
 
     def get_time_blk_data(self, a_code: list[str], week: list[bool], time_blk: list[bool]):
         """
-        Update the sorted attribute to a Series required to plot a pie chart of percentage of flights
-        in each departure time block
+        Update the sorted attribute to a Series required to plot a pie chart of percentage of
+        flights in each departure time block
         """
-        self.sorted = self.__current_state.percent_time_block(a_code, week, time_blk)
+        self.sorted, self.series = self.__current_state.percent_time_block(a_code, week, time_blk)
+        self.info = self.__current_state.get_info_str(self.sorted)
         self.notify()
 
 class SearchState(ABC):
@@ -193,7 +207,7 @@ class SearchState(ABC):
         wk = [i+1 for i in range(5) if week[i]]
         t_bk = [self._time_blk_dict[i] for i in range(5) if time_blk[i]]
         return wk, t_bk
-    
+
     @abstractmethod
     def sort_data(self, filt: list[str], week: list[bool], time_blk: list[bool]):
         """
@@ -201,28 +215,38 @@ class SearchState(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def get_info_str(self, data: pd.DataFrame):
+        """
+        Return a string consisted of delay statistics and relevant information
+        """
+        raise NotImplementedError
+
     def avg_flight_delay(self, filt: list[str], week: list[bool], time_blk: list[bool]):
         """
         Return a Series object required to plot a line graph of average delays
         """
-        temp_df = self.sort_data(filt, week, time_blk)[["DEP_DELAY","ARR_DELAY","WEEK"]]
-        return temp_df.groupby("WEEK").mean()
+        temp_df = self.sort_data(filt, week, time_blk)
+        temp_series = temp_df[["DEP_DELAY","ARR_DELAY","WEEK"]].groupby("WEEK").mean()
+        return temp_df, temp_series
 
     def percent_on_time(self, filt: list[str], week: list[bool], time_blk: list[bool]):
         """
         Return a Series object required to plot a pie chart of percentage of flights
         departing on time, with delay, diverted, or canceled
         """
-        temp_df = self.sort_data(filt, week, time_blk)["STATUS"]
-        return temp_df.value_counts()
+        temp_df = self.sort_data(filt, week, time_blk)
+        temp_series = temp_df["STATUS"].value_counts()
+        return temp_df, temp_series
 
     def percent_time_block(self, filt: list[str], week: list[bool], time_blk: list[bool]):
         """
         Reture a Series object required to plot a pie chart of percentage of flights
         in each departure time block
         """
-        temp_df = self.sort_data(filt, week, time_blk)["DEP_TIME_BLK"]
-        return temp_df.value_counts()
+        temp_df = self.sort_data(filt, week, time_blk)
+        temp_series = temp_df["DEP_TIME_BLK"].value_counts()
+        return temp_df, temp_series
 
 class SearchByFlight(SearchState):
     """
@@ -235,6 +259,41 @@ class SearchByFlight(SearchState):
                             (self.df["WEEK"].isin(selected_wk)) &
                             (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
 
+    def get_info_str(self, data: pd.DataFrame):
+        orgin_airport = data["ORIGIN"].unique()[0]
+        dest_airport = data["DEST"].unique()[0]
+        num_flights = data["ORIGIN"].count()
+        dist = data["DISTANCE"].unique()[0]
+        airlines_delay = data[["OP_CARRIER_AIRLINE_ID",
+                               "DEP_DELAY",
+                               "ARR_DELAY"]].groupby("OP_CARRIER_AIRLINE_ID").mean()
+        dep_stat = list(data["DEP_DELAY"].describe().values)
+        arr_stat = list(data["ARR_DELAY"].describe().values)
+        airlines_id = airlines_delay.index
+        airlines_dep = list(airlines_delay["DEP_DELAY"].values)
+        airlines_arr = list(airlines_delay["ARR_DELAY"].values)
+        airlines_info_list = []
+        for count in range(len(airlines_id)):
+            airlines_info_list.append((f"Airline ID: {airlines_id[count]}\n"
+                                       f"AVG DEP Delay:"
+                                       f" {airlines_dep[count]:.2f} min(s)\n"
+                                       f"AVG ARR Delay:"
+                                       f" {airlines_arr[count]:.2f} min(s)\n\n"))
+        temp_str = (f"Flight from {orgin_airport} to {dest_airport}\n"
+                    f"Distance: {dist} miles\n"
+                    f"Number of Flight(s): {num_flights}\n\n"
+                    f"*Departure Delay Statistics*\n"
+                    f"Average Delay:  {dep_stat[1]:.2f} min(s)\n"
+                    f"Shortest Delay: {dep_stat[3]:.2f} min(s)\n"
+                    f"Longest Delay:  {dep_stat[7]:.2f} min(s)\n\n"
+                    f"*Arrival Delay Statistics*\n"
+                    f"Average Delay:  {arr_stat[1]:.2f} min(s)\n"
+                    f"Shortest Delay: {arr_stat[3]:.2f} min(s)\n"
+                    f"Longest Delay:  {arr_stat[7]:.2f} min(s)\n\n"
+                    f"*Known Airline(s)*\n"
+                    f"{''.join(airlines_info_list)}")
+        return temp_str
+
 class SearchByAirport(SearchState):
     """
     A state for sorting the dataframe using airport as the filter
@@ -244,6 +303,38 @@ class SearchByAirport(SearchState):
         return self.df.loc[(self.df["ORIGIN"] == filt[0]) &
                            (self.df["WEEK"].isin(selected_wk)) &
                            (self.df["DEP_TIME_BLK"].isin(selected_time_blk))]
+
+    def get_info_str(self, data: pd.DataFrame):
+        airport = data["ORIGIN"].unique()[0]
+        num_flights = data["ORIGIN"].count()
+        airlines_delay = data[["OP_CARRIER_AIRLINE_ID",
+                               "DEP_DELAY",
+                               "ARR_DELAY"]].groupby("OP_CARRIER_AIRLINE_ID").mean()
+        dep_stat = list(data["DEP_DELAY"].describe().values)
+        arr_stat = list(data["ARR_DELAY"].describe().values)
+        airlines_id = airlines_delay.index
+        airlines_dep = list(airlines_delay["DEP_DELAY"].values)
+        airlines_arr = list(airlines_delay["ARR_DELAY"].values)
+        airlines_info_list = []
+        for count in range(len(airlines_id)):
+            airlines_info_list.append((f"Airline ID: {airlines_id[count]}\n"
+                                       f"AVG DEP Delay:"
+                                       f" {airlines_dep[count]:.2f} min(s)\n"
+                                       f"AVG ARR Delay:"
+                                       f" {airlines_arr[count]:.2f} min(s)\n\n"))
+        temp_str = (f"Airport: {airport}\n"
+                    f"Number of Flight(s): {num_flights}\n\n"
+                    f"*Departure Delay Statistics*\n"
+                    f"Average Delay:  {dep_stat[1]:.2f} min(s)\n"
+                    f"Shortest Delay: {dep_stat[3]:.2f} min(s)\n"
+                    f"Longest Delay:  {dep_stat[7]:.2f} min(s)\n\n"
+                    f"*Arrival Delay Statistics*\n"
+                    f"Average Delay:  {arr_stat[1]:.2f} min(s)\n"
+                    f"Shortest Delay: {arr_stat[3]:.2f} min(s)\n"
+                    f"Longest Delay:  {arr_stat[7]:.2f} min(s)\n\n"
+                    f"*Known Airline(s)*\n"
+                    f"{''.join(airlines_info_list)}")
+        return temp_str
 
 class SearchByAirline(SearchState):
     """
@@ -255,9 +346,36 @@ class SearchByAirline(SearchState):
                            (self.df["WEEK"].isin(selected_wk)) &
                            self.df["DEP_TIME_BLK"].isin(selected_time_blk)]
 
+    def get_info_str(self, data: pd.DataFrame):
+        airline_id = data["OP_CARRIER_AIRLINE_ID"].unique()[0]
+        num_flights = data["OP_CARRIER_AIRLINE_ID"].count()
+        dep_stat = list(data["DEP_DELAY"].describe().values)
+        arr_stat = list(data["ARR_DELAY"].describe().values)
+        airports = data[["ORIGIN","DEST"]].groupby("ORIGIN").count()
+        airports_id = airports.index
+        airports_num_flight = airports["DEST"].values
+        airports_info_list = []
+        for count in range(len(airports_id)):
+            airports_info_list.append((f"Airport ID: {airports_id[count]}\n"
+                                       f"% of flights:"
+                                       f" {airports_num_flight[count]:.0f} flight(s)\n\n"))
+        temp_str = (f"Airline ID: {airline_id}\n"
+                    f"Number of Flight(s): {num_flights}\n\n"
+                    f"*Departure Delay Statistics*\n"
+                    f"Average Delay:  {dep_stat[1]:.2f} min(s)\n"
+                    f"Shortest Delay: {dep_stat[3]:.2f} min(s)\n"
+                    f"Longest Delay:  {dep_stat[7]:.2f} min(s)\n\n"
+                    f"*Arrival Delay Statistics*\n"
+                    f"Average Delay:  {arr_stat[1]:.2f} min(s)\n"
+                    f"Shortest Delay: {arr_stat[3]:.2f} min(s)\n"
+                    f"Longest Delay:  {arr_stat[7]:.2f} min(s)\n\n"
+                    f"*Known Airport(s)*\n"
+                    f"{''.join(airports_info_list)}")
+        return temp_str
+
 
 if __name__ == "__main__":
-    data = FlightDataModel()
-    data.set_state(2)
-    data.get_avg_data(["20366"], [True,True,True,True,True], [True,True,True,True,True])
-    print(data.sorted)
+    test = FlightDataModel()
+    test.set_state(0)
+    test.get_avg_data(["ABE", "ATL"], [True,True,True,True,True], [True,True,True,True,True])
+    print(test.info)

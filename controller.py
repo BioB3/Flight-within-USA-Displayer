@@ -12,15 +12,12 @@ class Controller:
         self.__model.set_state(index)
 
     def avg_delay_flight(self, filt, week, time_blk):
-        self.__model.set_sel_graph(0)
         self.__model.get_avg_data(filt, week, time_blk)
 
     def percent_on_time(self, filt, week, time_blk):
-        self.__model.set_sel_graph(1)
         self.__model.get_on_time_data(filt, week, time_blk)
 
     def percent_time_blk(self, filt, week, time_blk):
-        self.__model.set_sel_graph(2)
         self.__model.get_time_blk_data(filt, week, time_blk)
 
     def run(self):

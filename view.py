@@ -68,29 +68,34 @@ class UI(tk.Tk, Observer):
         self.mainloop()
 
     def update(self):
-        update_thread = threading.Thread(target=self.update_graph)
-        update_thread.start()
-
-    def update_graph(self):
-        self.get_cur_tab().graph.plot_graph(self.model.sorted, self.model.sel_graph)
+        tab = self.get_cur_tab()
+        tab.graph.plot_graph(self.model.series, tab.cur_graph)
+        self.after(1, tab.update_text, self.model.info)
 
 class SearchTab(tk.Frame, ABC):
     def __init__(self, parent, controller, data, **kwargs) -> None:
         super().__init__(parent, **kwargs)
         self.controller = controller
         self.data = data
+        self.graph_type = ["average delay",
+                           "% on-time",
+                           "% time blk"]
+        self.cur_graph = self.graph_type[0]
         self.init_components()
 
     def init_components(self):
-        self.text = tk.Text(self, width=30)
+        self.text = tk.Text(self, width=29)
         self.text.insert("end", "To be Implemented")
         self.text["state"] = "disabled"
+        scroll_bar = tk.Scrollbar(self, command=self.text.yview)
+        self.text.config(yscrollcommand=scroll_bar.set)
         graph_and_bt = self.create_graph_and_buttons()
         self.sort_bar = SortBar(self)
-        self.sort_bar.add_label("*There're some flights reported*\n"+
-                                "*as delayed without delay time*")
+        self.sort_bar.add_label("*The line graph will not be plotted*\n"+
+                                "*if all the flights are in one week*")
         self.sort_bar.add_checkboxes()
         self.text.pack(side="left", fill="y")
+        scroll_bar.pack(side="left", fill="y")
         graph_and_bt.pack(side="left", fill="both",expand="True")
         self.sort_bar.pack(side="right", padx=10)
 
@@ -123,21 +128,30 @@ class SearchTab(tk.Frame, ABC):
         selected = self.sort_bar.cb_list[0].cb_val
         return sorted(self.data[selected])
 
+    def update_text(self, text):
+        self.text["state"] = "normal"
+        self.text.delete("1.0", "end")
+        self.text.insert("end", text)
+        self.text["state"] = "disabled"
+
     def update_lower_box(self, *args):
         new_load = self.get_available_dest()
         self.sort_bar.cb_list[1].update_load(new_load)
 
     def handle_avg_button(self, *args):
+        self.cur_graph = self.graph_type[0]
         a_code, wk, tb = self.get_selected_filter()
-        self.controller.avg_delay_flight(a_code, wk, tb)
+        self.after(1,self.controller.avg_delay_flight, a_code, wk, tb)
 
     def handle_on_time_button(self, *args):
+        self.cur_graph = self.graph_type[1]
         a_code, wk, tb = self.get_selected_filter()
-        self.controller.percent_on_time(a_code, wk, tb)
+        self.after(1, self.controller.percent_on_time, a_code, wk, tb)
 
     def handle_time_blk_button(self, *args):
+        self.cur_graph = self.graph_type[2]
         a_code, wk, tb = self.get_selected_filter()
-        self.controller.percent_time_blk(a_code, wk, tb)\
+        self.after(1,self.controller.percent_time_blk, a_code, wk, tb)
 
     @abstractmethod
     def init_sort_bar(self):
@@ -218,14 +232,14 @@ class CheckBoxFrame(tk.Frame):
         return time_blk_lst
 
     def init_components(self):
-        week_label = tk.Label(self,text="Week of the month(min: 2):")
+        week_label = tk.Label(self,text="Week of the month (min: 2):")
         week_label.pack(anchor="w")
         for _ in range(5):
             checkbox = tk.Checkbutton(self, text=self.WEEK[_],
                                       variable=self.__week_var[_],
                                       command=self.checkmin(self.__week_var[_],2,"wk"))
             checkbox.pack(anchor="w")
-        time_blk_label = tk.Label(self,text="Departure time block:")
+        time_blk_label = tk.Label(self,text="Departure time block (min: 1):")
         time_blk_label.pack(anchor="w")
         for _ in range(5):
             checkbox = tk.Checkbutton(self, text=self.TIME_BLK[_],
