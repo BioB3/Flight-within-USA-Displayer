@@ -1,20 +1,18 @@
 """User interface for Flight within USA displayer"""
 from tkinter import ttk, font
-from model import FlightDataModel, Observer
+from model import Observer
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from abc import ABC, abstractmethod
 import tkinter as tk
 import matplotlib
-import threading
 matplotlib.use("TkAgg")
 
 class UI(tk.Tk, Observer):
-    def __init__ (self, controller, model:FlightDataModel) -> None:
+    def __init__ (self, controller) -> None:
         super().__init__()
         self.title('Flight within USA displayer')
         self.__controller = controller
-        self.__model = model
         self.__tabs = {}
         self.default_font = font.nametofont('TkDefaultFont')
         self.default_font.configure(family='Times', size=12)
@@ -25,16 +23,16 @@ class UI(tk.Tk, Observer):
         return self.__controller
 
     @property
-    def model(self):
-        return self.__model
-
-    @property
     def notebook(self):
         return self.__notebook
 
+    @property
+    def tabs(self):
+        return self.__tabs
+
     def init_components(self):
-        airport_codes = self.model.df.groupby("ORIGIN")["DEST"].apply(set)
-        airline_codes = sorted(self.model.df["OP_CARRIER_AIRLINE_ID"].unique())
+        airport_codes = self.controller.get_airport()
+        airline_codes = self.controller.get_airline()
         self.__notebook = ttk.Notebook(self)
         flight_tab = FlightTab(self, self.controller, airport_codes)
         self.__notebook.add(flight_tab, text="Search by Flight")
@@ -68,9 +66,7 @@ class UI(tk.Tk, Observer):
         self.mainloop()
 
     def update(self):
-        tab = self.get_cur_tab()
-        tab.graph.plot_graph(self.model.series, tab.cur_graph)
-        self.after(1, tab.update_text, self.model.info)
+        self.controller.update_graph_stats()
 
 class SearchTab(tk.Frame, ABC):
     def __init__(self, parent, controller, data, **kwargs) -> None:
@@ -84,9 +80,7 @@ class SearchTab(tk.Frame, ABC):
         self.init_components()
 
     def init_components(self):
-        self.text = tk.Text(self, width=29)
-        self.text.insert("end", "To be Implemented")
-        self.text["state"] = "disabled"
+        self.text = tk.Text(self, width=29, state="disabled")
         scroll_bar = tk.Scrollbar(self, command=self.text.yview)
         self.text.config(yscrollcommand=scroll_bar.set)
         graph_and_bt = self.create_graph_and_buttons()
@@ -140,18 +134,15 @@ class SearchTab(tk.Frame, ABC):
 
     def handle_avg_button(self, *args):
         self.cur_graph = self.graph_type[0]
-        a_code, wk, tb = self.get_selected_filter()
-        self.after(1,self.controller.avg_delay_flight, a_code, wk, tb)
+        self.after(1,self.controller.avg_delay_flight)
 
     def handle_on_time_button(self, *args):
         self.cur_graph = self.graph_type[1]
-        a_code, wk, tb = self.get_selected_filter()
-        self.after(1, self.controller.percent_on_time, a_code, wk, tb)
+        self.after(1, self.controller.percent_on_time)
 
     def handle_time_blk_button(self, *args):
         self.cur_graph = self.graph_type[2]
-        a_code, wk, tb = self.get_selected_filter()
-        self.after(1,self.controller.percent_time_blk, a_code, wk, tb)
+        self.after(1,self.controller.percent_time_blk)
 
     @abstractmethod
     def init_sort_bar(self):
