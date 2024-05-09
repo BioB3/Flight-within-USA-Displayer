@@ -180,6 +180,41 @@ class FlightDataModel(Subject):
         self.info = self.__current_state.get_info_str(self.sorted)
         self.notify()
 
+    def get_data_story_telling_data(self):
+        """
+        Return a list consisted of descriptive statistics(string) and series needed to show the
+        data story telling page
+        """
+        data_list = []
+        dep_stats = list(self.df["DEP_DELAY"].describe().values)
+        dep_median = self.df["DEP_DELAY"].median()
+        dep_mode = self.df["DEP_DELAY"].mode().values
+        arr_stats = list(self.df["ARR_DELAY"].describe().values)
+        arr_median = self.df["ARR_DELAY"].median()
+        arr_mode = self.df["ARR_DELAY"].mode()
+        temp_str = (f"*Departure Delay Statistics*\n"
+                    f"Mean:   {dep_stats[1]:.2f}\n"
+                    f"Median: {dep_median:.2f}\n"
+                    f"Mode:   {dep_mode[0]:.2f}\n"
+                    f"Min:    {dep_stats[3]:.2f}\n"
+                    f"Max:    {dep_stats[7]:.2f}\n"
+                    f"VAR:    {dep_stats[2]**2:.2f}\n"
+                    f"SD:     {dep_stats[2]:.2f}\n"
+                    f"CV:     {dep_stats[2]/dep_stats[1]:.2f}\n"
+                    f"IQR:    {dep_stats[6]-dep_stats[4]:.2f}\n\n"
+                    f"*Arrival Delay Statistics*\n"
+                    f"Mean:   {arr_stats[1]:.2f}\n"
+                    f"Median: {arr_median:.2f}\n"
+                    f"Mode:   {arr_mode[0]:.2f}\n"
+                    f"Min:    {arr_stats[3]:.2f}\n"
+                    f"Max:    {arr_stats[7]:.2f}\n"
+                    f"VAR:    {arr_stats[2]**2:.2f}\n"
+                    f"SD:     {arr_stats[2]:.2f}\n"
+                    f"CV:     {arr_stats[2]/dep_stats[1]:.2f}\n"
+                    f"IQR:    {arr_stats[6]-dep_stats[4]:.2f}\n\n")
+        data_list.append(temp_str)
+        return data_list
+
 class SearchState(ABC):
     """
     Abstract class for state that contain the model's function
@@ -387,4 +422,4 @@ if __name__ == "__main__":
     test = FlightDataModel()
     test.set_state(0)
     test.get_avg_data(["ABE", "ATL"], [True,True,True,True,True], [True,True,True,True,True])
-    print(test.info)
+    print(test.df["DEP_DELAY"].mode().values)

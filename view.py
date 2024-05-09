@@ -1,11 +1,11 @@
 """User interface for Flight within USA displayer"""
 from tkinter import ttk, font
-from model import Observer
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from matplotlib.figure import Figure
 from abc import ABC, abstractmethod
 import tkinter as tk
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib
+from model import Observer
 matplotlib.use("TkAgg")
 
 class UI(tk.Tk, Observer):
@@ -43,10 +43,12 @@ class UI(tk.Tk, Observer):
         airline_tab = AirlineTab(self, self.controller, airline_codes)
         self.__notebook.add(airline_tab, text="Search by Airline")
         self.__tabs["Search by Airline"] = airline_tab
+        data_story_telling_tab = DataStoryTellingTab(self, self.controller)
+        self.__notebook.add(data_story_telling_tab, text="Overall Delay Statistics")
         self.__notebook.add(tk.Frame(self), text="Exit")
         self.__notebook.pack(expand=True, fill="both")
         self.__notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
-        
+
     def on_tab_change(self, event):
         tab = event.widget.tab('current')['text']
         if tab == "Search by Flight":
@@ -55,6 +57,8 @@ class UI(tk.Tk, Observer):
             self.controller.set_search_type(1)
         elif tab == "Search by Airline":
             self.controller.set_search_type(2)
+        elif tab == "Overall Delay Statistics":
+            return
         else:
             self.destroy()
 
@@ -73,6 +77,7 @@ class SearchTab(tk.Frame, ABC):
         super().__init__(parent, **kwargs)
         self.controller = controller
         self.data = data
+        self.graph : GraphFrame
         self.graph_type = ["average delay",
                            "% on-time",
                            "% time blk"]
@@ -132,15 +137,15 @@ class SearchTab(tk.Frame, ABC):
         new_load = self.get_available_dest()
         self.sort_bar.cb_list[1].update_load(new_load)
 
-    def handle_avg_button(self, *args):
+    def handle_avg_button(self):
         self.cur_graph = self.graph_type[0]
         self.after(1,self.controller.avg_delay_flight)
 
-    def handle_on_time_button(self, *args):
+    def handle_on_time_button(self):
         self.cur_graph = self.graph_type[1]
         self.after(1, self.controller.percent_on_time)
 
-    def handle_time_blk_button(self, *args):
+    def handle_time_blk_button(self):
         self.cur_graph = self.graph_type[2]
         self.after(1,self.controller.percent_time_blk)
 
@@ -156,13 +161,13 @@ class FlightTab(SearchTab):
     def init_sort_bar(self):
         self.sort_bar.add_cb_box("Origin Airport:", sorted(self.data.keys()))
         self.sort_bar.add_cb_box("Destination Airport:", self.get_available_dest())
-        self.sort_bar.cb_list[0].bind(self.update_lower_box, "+")
+        self.sort_bar.cb_list[0].bind_cb(self.update_lower_box, "+")
 
 class AirportTab(SearchTab):
     def __init__(self, parent, controller, data, **kwargs) -> None:
         super().__init__(parent, controller, data, **kwargs)
         self.init_sort_bar()
-        
+
     def init_sort_bar(self):
         self.sort_bar.add_cb_box("Airport:", sorted(self.data.keys()))
 
@@ -174,9 +179,26 @@ class AirlineTab(SearchTab):
     def init_sort_bar(self):
         self.sort_bar.add_cb_box("Airline ID:", self.data)
 
+class DataStoryTellingTab(tk.Frame):
+    def __init__(self, parent, controller, **kwargs) -> None:
+        super().__init__(parent, **kwargs)
+        self.controller = controller
+        self.init_components()
+
+    def init_components(self):
+        data = self.controller.data_story_telling_data()
+        descriptive_stat = tk.Text(self, width=30)
+        descriptive_stat.insert("end", data[0])
+        descriptive_stat["state"] = "disabled"
+        scroll_bar = tk.Scrollbar(self, command=descriptive_stat.yview)
+        descriptive_stat.config(yscrollcommand=scroll_bar.set)
+        scroll_bar.pack(side="right", fill="y")
+        descriptive_stat.pack(side="right", fill="y", expand=True)
+
 class SortBar(tk.Frame):
     def __init__(self, parent, **kwargs) -> None:
         super().__init__(parent, **kwargs)
+        self.__checkboxes: CheckBoxFrame
         self.__cb_list = []
 
     @property
@@ -203,7 +225,7 @@ class SortBar(tk.Frame):
 class CheckBoxFrame(tk.Frame):
     WEEK = ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5"]
     TIME_BLK = ["Early Morning", "Morning", "Afternoon", "Evening", "Night"]
-    
+
     def __init__(self, parent, **kwargs) -> None:
         super().__init__(parent, **kwargs)
         self.wk_numpicks = 5
@@ -278,7 +300,7 @@ class ComboboxFrame(tk.Frame):
         self.__cb_box.pack()
         self.__cb_box.bind("<KeyRelease>", self.search)
 
-    def bind(self, func=None, add=None):
+    def bind_cb(self, func=None, add=None):
         self.__cb_box.bind("<<ComboboxSelected>>", func, add)
 
     def update_load(self, new_load):
@@ -300,6 +322,8 @@ class ComboboxFrame(tk.Frame):
 class GraphFrame(tk.Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
+        self.__fig : Figure
+        self.__canvas : FigureCanvasTkAgg
         self.init_components()
 
     def init_components(self):
@@ -325,7 +349,7 @@ class GraphFrame(tk.Frame):
             colors = ["lime","darkorange","cyan","red","magenta"]
             slices, texts = ax.pie(data, colors=colors, startangle=90)
             percent = 100.*data/data.sum()
-            labels = ['{0} - {1:1.2f} %'.format(i, j) for i, j in zip(data.index,percent)]
+            labels = [f"{0} - {1:1.2f} %".format(i, j) for i, j in zip(data.index,percent)]
             if g_type == "% on-time":
                 ax.set_title("Percentage of Flight departing on-time")
                 ax.legend(slices, labels, title="Flight", loc="lower left",
@@ -335,3 +359,16 @@ class GraphFrame(tk.Frame):
                 ax.legend(slices, labels, title="Time Block", loc="lower left",
                         bbox_to_anchor=(-0.33,0), fontsize=8)
         self.__canvas.draw()
+
+class DataStoryTellingGraphFrame(tk.Frame):
+    def __init__(self, parent, **kwargs):
+        self.__fig : Figure
+        self.__canvas : FigureCanvasTkAgg
+        super().__init__(parent, **kwargs)
+
+    def init_components(self):
+        self.__fig = Figure(dpi=85)
+        self.__canvas = FigureCanvasTkAgg(self.__fig, self)
+        toolbar = NavigationToolbar2Tk(self.__canvas, self)
+        toolbar.update()
+        self.__canvas.get_tk_widget().pack(side="top", fill="both", expand=True)

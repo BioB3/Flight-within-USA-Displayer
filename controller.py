@@ -49,6 +49,9 @@ class Controller:
         """
         return sorted(self.model.df["OP_CARRIER_AIRLINE_ID"].unique())
 
+    def data_story_telling_data(self):
+        return self.model.get_data_story_telling_data()
+
     def create_default_view(self):
         tab_list = list(self.view.tabs.values())
         for count in range(len(tab_list)):
