@@ -127,12 +127,15 @@ class FlightDataModel(Subject):
                                   ("Night" if x >= 1900 or x < 400 else None))))
                                for x in df3["DEP_TIME"]]
         df3["WEEK"] = df3["FL_DATE"].dt.isocalendar().week
-        df3["STATUS"] = ["Delayed" if x1 else
-                         ("Diverted" if x2 else
-                          ("Canceled" if x3 else "On-time"))
-                         for x1, x2, x3 in zip(df3["DEP_DEL15"],
-                                               df3["DIVERTED"],
-                                               df3["CANCELLED"])]
+        df3["STATUS"] = ["Diverted" if x1 else
+                         ("Canceled" if x2 else
+                          ("Delayed Departure and Arrival" if x3 and x4 else
+                           ("Delayed Departure" if x3 else
+                            ("Delayed Arrival" if x4 else "On-time"))))
+                         for x1, x2, x3, x4 in zip(df3["DIVERTED"],
+                                                   df3["CANCELLED"],
+                                                   df3["DEP_DEL15"],
+                                                   df3["ARR_DEL15"])]
         df3.drop(df3.columns[df3.columns.str.contains('unnamed',case = False)],
                        axis=1, inplace=True)
         df3.drop(["AIRLINE_ID","ORIGIN_AIRPORT","DEST_AIRPORT"], axis=1, inplace=True)
@@ -182,8 +185,8 @@ class FlightDataModel(Subject):
 
     def get_data_story_telling_data(self):
         """
-        Return a list consisted of descriptive statistics(string) and series needed to show the
-        data story telling page
+        Return a list consisted of descriptive statistics(string), dataframe and series needed
+        to show the data story telling page
         """
         data_list = []
         dep_stats = list(self.df["DEP_DELAY"].describe().values)
@@ -213,6 +216,10 @@ class FlightDataModel(Subject):
                     f"CV:     {arr_stats[2]/dep_stats[1]:.2f}\n"
                     f"IQR:    {arr_stats[6]-dep_stats[4]:.2f}\n\n")
         data_list.append(temp_str)
+        dep_delay_df = self.df["DEP_DELAY"]
+        arr_delay_df = self.df["ARR_DELAY"]
+        data_list.append(dep_delay_df)
+        data_list.append(arr_delay_df)
         return data_list
 
 class SearchState(ABC):
@@ -422,4 +429,4 @@ if __name__ == "__main__":
     test = FlightDataModel()
     test.set_state(0)
     test.get_avg_data(["ABE", "ATL"], [True,True,True,True,True], [True,True,True,True,True])
-    print(test.df["DEP_DELAY"].mode().values)
+    print(test.df["DEP_DELAY"])

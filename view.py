@@ -5,6 +5,7 @@ import tkinter as tk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib
+import matplotlib.pyplot as plt
 from model import Observer
 matplotlib.use("TkAgg")
 
@@ -194,6 +195,8 @@ class DataStoryTellingTab(tk.Frame):
         descriptive_stat.config(yscrollcommand=scroll_bar.set)
         scroll_bar.pack(side="right", fill="y")
         descriptive_stat.pack(side="right", fill="y", expand=True)
+        graph_cycle_frame = DataStoryTellingGraphFrame(self, data)
+        graph_cycle_frame.pack(side="left", fill="both", expand=True)
 
 class SortBar(tk.Frame):
     def __init__(self, parent, **kwargs) -> None:
@@ -322,20 +325,19 @@ class ComboboxFrame(tk.Frame):
 class GraphFrame(tk.Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
-        self.__fig : Figure
-        self.__canvas : FigureCanvasTkAgg
+        self.canvas : FigureCanvasTkAgg
         self.init_components()
 
     def init_components(self):
-        self.__fig = Figure(dpi=85)
-        self.__canvas = FigureCanvasTkAgg(self.__fig, self)
-        toolbar = NavigationToolbar2Tk(self.__canvas, self)
+        fig = Figure(dpi=85)
+        self.canvas = FigureCanvasTkAgg(fig, self)
+        toolbar = NavigationToolbar2Tk(self.canvas, self)
         toolbar.update()
-        self.__canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
+        self.canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
 
     def plot_graph(self, data, g_type):
-        self.__fig.clf()
-        ax = self.__fig.subplots()
+        self.canvas.figure.clf()
+        ax = self.canvas.figure.subplots()
         if g_type == "average delay":
             tick_label = [f"Week {i}" for i in data.index]
             ax.set_xlabel("Week of the Month")
@@ -347,28 +349,41 @@ class GraphFrame(tk.Frame):
             ax.legend(loc="lower left", bbox_to_anchor=(0,1))
         else:
             colors = ["lime","darkorange","cyan","red","magenta"]
-            slices, texts = ax.pie(data, colors=colors, startangle=90)
+            pie = ax.pie(data, colors=colors, startangle=90)
             percent = 100.*data/data.sum()
-            labels = [f"{0} - {1:1.2f} %".format(i, j) for i, j in zip(data.index,percent)]
+            labels = ["{0} - {1:1.2f} %".format(i, j) for i, j in zip(data.index,percent)]
             if g_type == "% on-time":
                 ax.set_title("Percentage of Flight departing on-time")
-                ax.legend(slices, labels, title="Flight", loc="lower left",
-                        bbox_to_anchor=(-0.33,0), fontsize=8)
+                ax.legend(pie[0], labels, title="Flight", loc="lower right",
+                        bbox_to_anchor=(1,0), fontsize=8,
+                        bbox_transform=self.canvas.figure.transFigure, ncol=2)
             else:
                 ax.set_title("Percentage of Flight in each Time Block")
-                ax.legend(slices, labels, title="Time Block", loc="lower left",
-                        bbox_to_anchor=(-0.33,0), fontsize=8)
-        self.__canvas.draw()
+                ax.legend(pie[0], labels, title="Time Block", loc="lower right",
+                        bbox_to_anchor=(1,0), fontsize=8,
+                        bbox_transform=self.canvas.figure.transFigure, ncol=2)
+        self.canvas.draw()
 
 class DataStoryTellingGraphFrame(tk.Frame):
-    def __init__(self, parent, **kwargs):
-        self.__fig : Figure
-        self.__canvas : FigureCanvasTkAgg
+    def __init__(self, parent, data, **kwargs):
         super().__init__(parent, **kwargs)
+        self.data = data
+        self.init_components()
 
     def init_components(self):
-        self.__fig = Figure(dpi=85)
-        self.__canvas = FigureCanvasTkAgg(self.__fig, self)
-        toolbar = NavigationToolbar2Tk(self.__canvas, self)
-        toolbar.update()
-        self.__canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
+        hist_frame = tk.Frame(self)
+        hist_fig = Figure(dpi=85)
+        histogram = FigureCanvasTkAgg(hist_fig, hist_frame)
+        histogram.get_tk_widget().pack(side="top", fill="both", expand=True)
+        hist_toolbar = NavigationToolbar2Tk(histogram, hist_frame)
+        hist_toolbar.update()
+        ax = histogram.figure.subplots()
+        ax.hist(self.data[1], bins=125, alpha=0.5, label="Departure delay")
+        ax.hist(self.data[2], alpha=0.5, label="Arrival delay")
+        ax.legend(loc="upper right") 
+        ax.set_title("Delay Time Histogram")
+        ax.set_xlim(-75, 50)
+        ax.set_xlabel("Delay Time (mins)")
+        ax.set_ylabel("Frequency")
+        histogram.draw()
+        hist_frame.pack(side="top", fill="both", expand=True)
