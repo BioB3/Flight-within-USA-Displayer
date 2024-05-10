@@ -47,7 +47,7 @@ class Controller:
         """
         Return available airline ID
         """
-        return sorted(self.model.df["OP_CARRIER_AIRLINE_ID"].unique())
+        return sorted(self.model.df["OP_CARRIER_AIRLINE_ID"].apply(str).unique())
 
     def data_story_telling_data(self):
         return self.model.get_data_story_telling_data()
