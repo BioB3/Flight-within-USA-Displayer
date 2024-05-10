@@ -5,8 +5,8 @@ import tkinter as tk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib
-import matplotlib.pyplot as plt
 from model import Observer
+import numpy as np
 matplotlib.use("TkAgg")
 
 class UI(tk.Tk, Observer):
@@ -78,12 +78,12 @@ class SearchTab(tk.Frame, ABC):
         super().__init__(parent, **kwargs)
         self.controller = controller
         self.data = data
-        self.graph : GraphFrame
-        self.graph_type = ["average delay",
-                           "% on-time",
-                           "% time blk"]
-        self.cur_graph = self.graph_type[0]
+        self.graph : SearchTabGraphFrame
         self.init_components()
+        self.graph_command = [self.graph.plot_avg_delay_graph,
+                              self.graph.plot_on_time_graph,
+                              self.graph.plot_dep_time_graph]
+        self.cur_graph = self.graph_command[0]
 
     def init_components(self):
         self.text = tk.Text(self, width=29, state="disabled")
@@ -101,7 +101,7 @@ class SearchTab(tk.Frame, ABC):
 
     def create_graph_and_buttons(self):
         center_frame = tk.Frame(self)
-        self.graph = GraphFrame(center_frame)
+        self.graph = SearchTabGraphFrame(center_frame)
         button_frame = tk.Frame(center_frame)
         avg_delay = tk.Button(button_frame, text="Average Delay",
                                    command=self.handle_avg_button)
@@ -139,15 +139,15 @@ class SearchTab(tk.Frame, ABC):
         self.sort_bar.cb_list[1].update_load(new_load)
 
     def handle_avg_button(self):
-        self.cur_graph = self.graph_type[0]
+        self.cur_graph = self.graph_command[0]
         self.after(1,self.controller.avg_delay_flight)
 
     def handle_on_time_button(self):
-        self.cur_graph = self.graph_type[1]
+        self.cur_graph = self.graph_command[1]
         self.after(1, self.controller.percent_on_time)
 
     def handle_time_blk_button(self):
-        self.cur_graph = self.graph_type[2]
+        self.cur_graph = self.graph_command[2]
         self.after(1,self.controller.percent_time_blk)
 
     @abstractmethod
@@ -188,13 +188,15 @@ class DataStoryTellingTab(tk.Frame):
 
     def init_components(self):
         data = self.controller.data_story_telling_data()
-        descriptive_stat = tk.Text(self, width=30)
+        text_frame = tk.Frame(self)
+        descriptive_stat = tk.Text(text_frame, width=36, wrap=tk.WORD)
         descriptive_stat.insert("end", data[0])
         descriptive_stat["state"] = "disabled"
-        scroll_bar = tk.Scrollbar(self, command=descriptive_stat.yview)
+        scroll_bar = tk.Scrollbar(text_frame, command=descriptive_stat.yview)
         descriptive_stat.config(yscrollcommand=scroll_bar.set)
         scroll_bar.pack(side="right", fill="y")
-        descriptive_stat.pack(side="right", fill="y", expand=True)
+        descriptive_stat.pack(side="left", fill="y", expand=True)
+        text_frame.pack(side="right", fill="y", expand=True)
         graph_cycle_frame = DataStoryTellingGraphFrame(self, data)
         graph_cycle_frame.pack(side="left", fill="both", expand=True)
 
@@ -322,7 +324,7 @@ class ComboboxFrame(tk.Frame):
                     option.append(item)
             self.__cb_box["values"] = option
 
-class GraphFrame(tk.Frame):
+class SearchTabGraphFrame(tk.Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
         self.canvas : FigureCanvasTkAgg
@@ -335,55 +337,135 @@ class GraphFrame(tk.Frame):
         toolbar.update()
         self.canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
 
-    def plot_graph(self, data, g_type):
+    def plot_avg_delay_graph(self, data):
         self.canvas.figure.clf()
         ax = self.canvas.figure.subplots()
-        if g_type == "average delay":
-            tick_label = [f"Week {i}" for i in data.index]
-            ax.set_xlabel("Week of the Month")
-            ax.set_ylabel("Average Delay Time (mins)")
-            ax.set_title("Average Delays")
-            ax.set_xticks(data.index, tick_label)
-            ax.plot(data.index, data["DEP_DELAY"], label="Departure Delay", color="lime")
-            ax.plot(data.index, data["ARR_DELAY"], label="Arrival Delay", color="red")
-            ax.legend(loc="lower left", bbox_to_anchor=(0,1))
-        else:
-            colors = ["lime","darkorange","cyan","red","magenta"]
-            pie = ax.pie(data, colors=colors, startangle=90)
-            percent = 100.*data/data.sum()
-            labels = ["{0} - {1:1.2f} %".format(i, j) for i, j in zip(data.index,percent)]
-            if g_type == "% on-time":
-                ax.set_title("Percentage of Flight departing on-time")
-                ax.legend(pie[0], labels, title="Flight", loc="lower right",
-                        bbox_to_anchor=(1,0), fontsize=8,
-                        bbox_transform=self.canvas.figure.transFigure, ncol=2)
-            else:
-                ax.set_title("Percentage of Flight in each Time Block")
-                ax.legend(pie[0], labels, title="Time Block", loc="lower right",
-                        bbox_to_anchor=(1,0), fontsize=8,
-                        bbox_transform=self.canvas.figure.transFigure, ncol=2)
+        tick_label = [f"Week {i}" for i in data.index]
+        ax.set_xlabel("Week of the Month")
+        ax.set_ylabel("Average Delay Time (mins)")
+        ax.set_title("Average Delays")
+        ax.set_xticks(data.index, tick_label)
+        ax.plot(data.index, data["DEP_DELAY"], label="Departure Delay", color="lime")
+        ax.plot(data.index, data["ARR_DELAY"], label="Arrival Delay", color="red")
+        ax.legend(loc="lower left", bbox_to_anchor=(0,1))
+        ax.grid(axis="y")
+        self.canvas.draw()
+
+    def plot_on_time_graph(self, data):
+        self.canvas.figure.clf()
+        ax = self.canvas.figure.subplots()
+        colors = ["lime","darkorange","cyan","red","magenta","blue"]
+        pie = ax.pie(data, colors=colors, startangle=90)
+        percent = 100.*data/data.sum()
+        labels = ["{0} - {1:1.2f} %".format(i, j) for i, j in zip(data.index,percent)]
+        ax.set_title("Percentage of Flight departing on-time")
+        ax.legend(pie[0], labels, title="Flight", loc="lower right",
+                bbox_to_anchor=(1,0), fontsize=8,
+                bbox_transform=self.canvas.figure.transFigure, ncol=2)
+        self.canvas.draw()
+
+    def plot_dep_time_graph(self, data):
+        self.canvas.figure.clf()
+        ax = self.canvas.figure.subplots()
+        colors = ["lime","darkorange","cyan","red","magenta"]
+        pie = ax.pie(data, colors=colors, startangle=90)
+        percent = 100.*data/data.sum()
+        labels = ["{0} - {1:1.2f} %".format(i, j) for i, j in zip(data.index,percent)]
+        ax.set_title("Percentage of Flight in each Time Block")
+        ax.legend(pie[0], labels, title="Time Block", loc="lower right",
+                bbox_to_anchor=(1,0), fontsize=8,
+                bbox_transform=self.canvas.figure.transFigure, ncol=2)
         self.canvas.draw()
 
 class DataStoryTellingGraphFrame(tk.Frame):
     def __init__(self, parent, data, **kwargs):
         super().__init__(parent, **kwargs)
         self.data = data
+        self.canvas : FigureCanvasTkAgg
+        self.toolbar : NavigationToolbar2Tk
         self.init_components()
 
     def init_components(self):
-        hist_frame = tk.Frame(self)
-        hist_fig = Figure(dpi=85)
-        histogram = FigureCanvasTkAgg(hist_fig, hist_frame)
-        histogram.get_tk_widget().pack(side="top", fill="both", expand=True)
-        hist_toolbar = NavigationToolbar2Tk(histogram, hist_frame)
-        hist_toolbar.update()
-        ax = histogram.figure.subplots()
+        fig = Figure(dpi=85)
+        self.canvas = FigureCanvasTkAgg(fig, self)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self)
+        self.toolbar.update()
+        self.plot_delay_histogram()
+        buttons_frame = tk.Frame(self)
+        hist_button = tk.Button(buttons_frame, text="Delays Histogram",
+                                command=lambda x=1: self.after(x, self.plot_delay_histogram))
+        avg_delay_button = tk.Button(buttons_frame, text="Average Delays",
+                                     command=lambda x=1: self.after(x, self.plot_avg_delay))
+        num_week_button = tk.Button(buttons_frame, text="Number of Flights per week",
+                                    command=lambda x=1: self.after(x, self.plot_flight_week))
+        num_time_button = tk.Button(buttons_frame, text="Number of Flights per time block",
+                                    command=lambda x=1: self.after(x, self.plot_flight_time_blk))
+        hist_button.pack(side="left")
+        avg_delay_button.pack(side="left")
+        num_week_button.pack(side="left")
+        num_time_button.pack(side="left")
+        buttons_frame.pack(side="bottom")
+        self.canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
+
+    def plot_delay_histogram(self):
+        self.canvas.figure.clf()
+        ax = self.canvas.figure.subplots()
         ax.hist(self.data[1], bins=125, alpha=0.5, label="Departure delay")
         ax.hist(self.data[2], alpha=0.5, label="Arrival delay")
-        ax.legend(loc="upper right") 
-        ax.set_title("Delay Time Histogram")
-        ax.set_xlim(-75, 50)
+        ax.legend(loc="upper right")
+        ax.set_title("Delays Time Histogram")
+        ax.set_xlim(-75, 75)
         ax.set_xlabel("Delay Time (mins)")
         ax.set_ylabel("Frequency")
-        histogram.draw()
-        hist_frame.pack(side="top", fill="both", expand=True)
+        self.canvas.draw()
+
+    def plot_avg_delay(self):
+        self.canvas.figure.clf()
+        ax = self.canvas.figure.subplots()
+        ax.set_xlabel("Day of the Month")
+        ax.set_ylabel("Average Delay Time (mins)")
+        ax.set_title("Average Flight Delays Time in January 2020")
+        ax.set_xticks(self.data[3].index[::2])
+        ax.plot(self.data[3].index, self.data[3]["DEP_DELAY"],
+                label="Departure Delay", color="lime")
+        ax.plot(self.data[3].index, self.data[3]["ARR_DELAY"],
+                label="Arrival Delay", color="red")
+        ax.legend(loc="lower left", bbox_to_anchor=(-0.15,1))
+        ax.grid()
+        self.canvas.draw()
+
+    def plot_flight_week(self):
+        self.canvas.figure.clf()
+        ax = self.canvas.figure.subplots()
+        colors = ["lime","darkorange","cyan","red","magenta","blue"]
+        week = self.data[4].index
+        flight_type = self.data[4].columns
+        bottom = np.zeros(len(week))
+        for i in range(len(flight_type)):
+            ax.bar(week, self.data[4][flight_type[i]], label=flight_type[i],
+                    color=colors[i], bottom=bottom)
+            bottom += self.data[4][flight_type[i]]
+        ax.set_ylim(0,170000)
+        ax.legend(loc='upper right', ncols=3)
+        ax.set_xlabel('Week of the month')
+        ax.set_ylabel('Number of Flights')
+        ax.set_title('Flights per week in January 2020')
+        self.canvas.draw()
+
+    def plot_flight_time_blk(self):
+        self.canvas.figure.clf()
+        ax = self.canvas.figure.subplots()
+        colors = ["lime","darkorange","cyan","red","magenta","blue"]
+        time_blk = self.data[5].index
+        flight_type = self.data[5].columns
+        bottom = np.zeros(len(time_blk))
+        for i in range(len(flight_type)):
+            ax.bar(time_blk, self.data[5][flight_type[i]], label=flight_type[i],
+                    color=colors[i], bottom=bottom)
+            bottom += self.data[5][flight_type[i]]
+        ax.set_ylim(0,175000)
+        ax.legend(loc='upper right', ncols=3)
+        ax.set_xlabel('Departure Time Block')
+        ax.set_ylabel('Number of Flights')
+        ax.set_title('Flights per time block in January 2020')
+        self.canvas.draw()

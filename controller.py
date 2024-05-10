@@ -34,7 +34,7 @@ class Controller:
     def update_graph_stats(self, tab=None):
         if not tab:
             tab = self.view.get_cur_tab()
-        tab.graph.plot_graph(self.model.series, tab.cur_graph)
+        tab.cur_graph(self.model.series)
         tab.update_text(self.model.info)
 
     def get_airport(self):

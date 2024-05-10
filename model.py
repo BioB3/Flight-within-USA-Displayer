@@ -195,7 +195,7 @@ class FlightDataModel(Subject):
         arr_stats = list(self.df["ARR_DELAY"].describe().values)
         arr_median = self.df["ARR_DELAY"].median()
         arr_mode = self.df["ARR_DELAY"].mode()
-        temp_str = (f"*Departure Delay Statistics*\n"
+        temp_str = ("*Departure Delay Statistics*\n"
                     f"Mean:   {dep_stats[1]:.2f}\n"
                     f"Median: {dep_median:.2f}\n"
                     f"Mode:   {dep_mode[0]:.2f}\n"
@@ -205,7 +205,7 @@ class FlightDataModel(Subject):
                     f"SD:     {dep_stats[2]:.2f}\n"
                     f"CV:     {dep_stats[2]/dep_stats[1]:.2f}\n"
                     f"IQR:    {dep_stats[6]-dep_stats[4]:.2f}\n\n"
-                    f"*Arrival Delay Statistics*\n"
+                    "*Arrival Delay Statistics*\n"
                     f"Mean:   {arr_stats[1]:.2f}\n"
                     f"Median: {arr_median:.2f}\n"
                     f"Mode:   {arr_mode[0]:.2f}\n"
@@ -214,12 +214,35 @@ class FlightDataModel(Subject):
                     f"VAR:    {arr_stats[2]**2:.2f}\n"
                     f"SD:     {arr_stats[2]:.2f}\n"
                     f"CV:     {arr_stats[2]/dep_stats[1]:.2f}\n"
-                    f"IQR:    {arr_stats[6]-dep_stats[4]:.2f}\n\n")
-        data_list.append(temp_str)
+                    f"IQR:    {arr_stats[6]-dep_stats[4]:.2f}\n\n"
+                    "Most flights were departed early and arrived early as well. "
+                    "Week 3 of the month had the hightest amount of flights with delay. "
+                    "Flight departed at night had the highest chance of being delayed. "
+                    "Early morning flights at the end of the month are recommended. ")
         dep_delay_df = self.df["DEP_DELAY"]
         arr_delay_df = self.df["ARR_DELAY"]
+        average_delay_series = self.df[["DEP_DELAY",
+                                        "ARR_DELAY",
+                                        "DAY_OF_MONTH"]].groupby("DAY_OF_MONTH").mean()
+        flight_status_week = self.df[["STATUS",
+                                      "WEEK"]].groupby("WEEK").value_counts().reset_index()
+        flight_status_week_df = flight_status_week.pivot(index="WEEK",
+                                                         columns="STATUS",
+                                                         values="count")
+        flight_status_time = self.df[["STATUS",
+                                     "DEP_TIME_BLK"]].groupby("DEP_TIME_BLK")\
+                                         .value_counts().reset_index()
+        flight_status_time_df = flight_status_time.pivot(index="DEP_TIME_BLK",
+                                                         columns="STATUS",
+                                                         values="count").reindex(
+                                                             ["Early Morning", "Morning",
+                                                              "Afternoon", "Evening", "Night"])
+        data_list.append(temp_str)
         data_list.append(dep_delay_df)
         data_list.append(arr_delay_df)
+        data_list.append(average_delay_series)
+        data_list.append(flight_status_week_df)
+        data_list.append(flight_status_time_df)
         return data_list
 
 class SearchState(ABC):
@@ -429,4 +452,4 @@ if __name__ == "__main__":
     test = FlightDataModel()
     test.set_state(0)
     test.get_avg_data(["ABE", "ATL"], [True,True,True,True,True], [True,True,True,True,True])
-    print(test.df["DEP_DELAY"])
+    print(test.get_data_story_telling_data()[5])
