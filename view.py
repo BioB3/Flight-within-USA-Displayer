@@ -6,6 +6,9 @@ from search_tabs import FlightTab, AirportTab, AirlineTab
 from data_storytelling_tab import DataStoryTellingTab
 
 class UI(tk.Tk, Observer):
+    """
+    UI to show information about flights delay
+    """
     def __init__ (self, controller) -> None:
         super().__init__()
         self.title('Flight within USA displayer')
@@ -17,17 +20,34 @@ class UI(tk.Tk, Observer):
 
     @property
     def controller(self):
+        """
+        Getter for controller attribute
+        """
         return self.__controller
 
     @property
     def notebook(self):
+        """
+        Getter for notebook attribute
+        """
         return self.__notebook
 
     @property
     def tabs(self):
+        """
+        Getter for tabs attribute
+        """
         return self.__tabs
 
     def init_components(self):
+        """
+        Create 5 tabs consist of
+        -Search by Flight
+        -Search by Airport
+        -Search by Airline
+        -Overall Delay Statistics
+        -Exit
+        """
         airport_codes = self.controller.get_airport()
         airline_codes = self.controller.get_airline()
         self.__notebook = ttk.Notebook(self)
@@ -49,6 +69,9 @@ class UI(tk.Tk, Observer):
         self.__notebook.bind('<<NotebookTabChanged>>', self.on_tab_change)
 
     def on_tab_change(self, event):
+        """
+        Event handler for notebook when current tab is changed
+        """
         tab_text = event.widget.tab('current')['text']
         if tab_text == "Search by Flight":
             self.controller.set_search_type(0)
@@ -65,10 +88,17 @@ class UI(tk.Tk, Observer):
             self.after(1,self.controller.avg_delay_flight)
 
     def get_cur_tab(self):
+        """
+        Get the current tab.
+        : return : a SearchTab or DataStoryTellingTab of the selected tab
+        """
         tab_text = self.notebook.tab(self.notebook.select(), "text")
         return self.__tabs[tab_text][0]
 
     def run(self):
+        """
+        Start the UI
+        """
         self.mainloop()
 
     def update(self):

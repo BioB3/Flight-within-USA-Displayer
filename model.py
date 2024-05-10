@@ -328,7 +328,7 @@ class SearchByFlight(SearchState):
         try:
             orgin_airport = data["ORIGIN"].unique()[0]
         except:
-            return f"No flights found"
+            return "No flights found"
         dest_airport = data["DEST"].unique()[0]
         num_flights = data["ORIGIN"].count()
         dist = data["DISTANCE"].unique()[0]
@@ -376,7 +376,7 @@ class SearchByAirport(SearchState):
         try:
             airport = data["ORIGIN"].unique()[0]
         except:
-            return f"No flights found"
+            return "No flights found"
         num_flights = data["ORIGIN"].count()
         airlines_delay = data[["OP_CARRIER_AIRLINE_ID",
                                "DEP_DELAY",
@@ -421,7 +421,7 @@ class SearchByAirline(SearchState):
         try:
             airline_id = data["OP_CARRIER_AIRLINE_ID"].unique()[0]
         except:
-            return f"No flights found"
+            return "No flights found"
         num_flights = data["OP_CARRIER_AIRLINE_ID"].count()
         dep_stat = list(data["DEP_DELAY"].describe().values)
         arr_stat = list(data["ARR_DELAY"].describe().values)
