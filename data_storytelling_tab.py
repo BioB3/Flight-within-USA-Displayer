@@ -29,7 +29,7 @@ class DataStoryTellingTab(tk.Frame):
         descriptive_stat.config(yscrollcommand=scroll_bar.set)
         scroll_bar.pack(side="right", fill="y")
         descriptive_stat.pack(side="left", fill="y", expand=True)
-        text_frame.pack(side="right", fill="y", expand=True)
+        text_frame.pack(side="right", fill="y")
         graph = DataStoryTellingGraphFrame(self, data)
         graph.pack(side="left", fill="both", expand=True)
 
