@@ -6,10 +6,9 @@ class Controller:
     """
     Controller that interact with model and view
     """
-    def __init__(self) -> None:
+    def __init__(self, model) -> None:
         self.__model = FlightDataModel()
-        self.__view = UI(self)
-        self.__model.attach(self.__view)
+        self.__view : UI
 
     @property
     def model(self):
@@ -24,6 +23,14 @@ class Controller:
         Getter for view attribute.
         """
         return self.__view
+
+    @view.setter
+    def view(self, view):
+        """
+        Setter for view attribute.
+        """
+        self.__view = view
+        self.model.attach(self.view)
 
     def set_search_type(self, index: int):
         """
