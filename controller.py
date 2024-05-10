@@ -52,15 +52,5 @@ class Controller:
     def data_story_telling_data(self):
         return self.model.get_data_story_telling_data()
 
-    def create_default_view(self):
-        tab_list = list(self.view.tabs.values())
-        for count in range(len(tab_list)):
-            tab = tab_list[count]
-            self.view.notebook.select(tab)
-            self.set_search_type(count)
-            filt, week, time_blk = tab.get_selected_filter()
-            self.model.get_avg_data(filt, week, time_blk)
-        self.view.notebook.select(tab_list[0])
-
     def run(self):
         self.__view.run()
