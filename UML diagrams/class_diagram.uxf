@@ -1,0 +1,155 @@
+<diagram program="umletino" version="15.1"><zoom_level>12</zoom_level><help_text>Space for diagram notes</help_text><element><id>UMLClass</id><coordinates><x>768</x><y>0</y><w>264</w><h>240</h></coordinates><panel_attributes>Controller
+--
+-model: FlightDataModel
+-view: UI
+--
++set_search_type(index: int)
++avg_delay_flight()
++percent_on_time()
++percent_time_blk()
++update_graph_stats(tab: SearchTab)
++get_airport()
++get_airline()
++data_story_telling_data()
++run()</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>636</x><y>324</y><w>192</w><h>108</h></coordinates><panel_attributes>/Subject/
+--
+
+--
+/+attach(observer: Observer)/
+/+detach(observer: Observer)/
+/+notify()/</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>948</x><y>336</y><w>168</w><h>84</h></coordinates><panel_attributes>/Observer/
+--
+
+--
+/+update(subject: Subject)/</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>816</x><y>360</y><w>156</w><h>36</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>110;10;10;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>336</x><y>480</y><w>492</w><h>324</h></coordinates><panel_attributes>FlightDataModel
+--
+-df: pandas.DataFrame
+-sorted: pandas.DataFrame
+-series: pandas.Series
+-info: str
+-states: list[SearchState]
+-current_state: SearchState
++observers: Observer[*]
+--
++gen_df(): pandas.DataFrame
++attach(observer: Observer)
++detach(observer: Observer)
++notify()
++set_state(index: int)
++get_avg_data(a_code: list[str], week: list[bool], time_blk: list[bool])
++get_on_time_data(a_code: list[str], week: list[bool], time_blk: list[bool])
++get_time_blk_data(a_code: list[str], week: list[bool], time_blk: list[bool])
++get_data_story_telling_data(): list</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>780</x><y>420</y><w>36</w><h>84</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;50</additional_attributes></element><element><id>UMLClass</id><coordinates><x>84</x><y>1272</y><w>516</w><h>180</h></coordinates><panel_attributes>/SearchState/
+--
+_+time_blk_dict: dict_
+#df: pandas.DataFrame
+--
++convert_bool_to_filter(week: list[bool], time_blk: list[bool])
++avg_flight_delay(filt: list[str], week: list[bool], time_blk: list[bool]): tuple
++percent_on_time(filt: list[str], week: list[bool], time_blk: list[bool]): tuple
++percent_time_block(filt: list[str], week: list[bool], time_blk: list[bool]): tuple
+/+sort_data(filt: list[str], week: list[bool], time_blk: list[bool])/
+/+get_info_str(data: pandas.DataFrame)/</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>72</x><y>888</y><w>540</w><h>96</h></coordinates><panel_attributes>/SearchByFlight/
+--
+
+--
++sort_data(filt: list[str], week: list[bool], time_blk: list[bool]): pandas.DataFrame
++get_info_str(data: pandas.DataFrame): str</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>72</x><y>1128</y><w>540</w><h>96</h></coordinates><panel_attributes>/SearchByAirport/
+--
+
+--
++sort_data(filt: list[str], week: list[bool], time_blk: list[bool]): pandas.DataFrame
++get_info_str(data: pandas.DataFrame): str</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>72</x><y>1008</y><w>540</w><h>96</h></coordinates><panel_attributes>/SearchByAirline/
+--
+
+--
++sort_data(filt: list[str], week: list[bool], time_blk: list[bool]): pandas.DataFrame
++get_info_str(data: pandas.DataFrame): str</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>0</x><y>924</y><w>108</w><h>456</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>70;360;10;360;10;10;60;10</additional_attributes></element><element><id>Relation</id><coordinates><x>0</x><y>1032</y><w>96</w><h>48</h></coordinates><panel_attributes></panel_attributes><additional_attributes>10;20;60;20</additional_attributes></element><element><id>Relation</id><coordinates><x>0</x><y>1152</y><w>96</w><h>48</h></coordinates><panel_attributes></panel_attributes><additional_attributes>10;20;60;20</additional_attributes></element><element><id>Relation</id><coordinates><x>600</x><y>792</y><w>156</w><h>180</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;130;110;130;110;10</additional_attributes></element><element><id>Relation</id><coordinates><x>600</x><y>936</y><w>156</w><h>156</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;110;110;110;110;10</additional_attributes></element><element><id>Relation</id><coordinates><x>600</x><y>1056</y><w>156</w><h>156</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;110;110;110;110;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>936</x><y>480</y><w>192</w><h>180</h></coordinates><panel_attributes>UI
+--
+-controller: Controller
+-tabs: dict
+-notebook: ttk.Notebook
+--
++init_components()
++on_tab_change(event)
++get_cur_tab(): SearchTab
++run()
++update()</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1020</x><y>408</y><w>36</w><h>96</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>10;10;10;60</additional_attributes></element><element><id>UMLClass</id><coordinates><x>1368</x><y>624</y><w>312</w><h>348</h></coordinates><panel_attributes>/SearchTab/
+--
++controller: Controller
++data: list/dict
++graph: SearchTabGraphFrame
++graph_command: list
++cur_graph: function
++text: tk.Text
++sort_bar: SortBar
+--
++init_components()
++create_graph_and_buttons(): tkinter.Frame
++get_selected_filter(): tuple
++get_available_dest(): list
++update_text(text: str)
++update_lower_box()
++handle_avg_button()
++handle_on_time_button()
++handle_time_blk_button()
+/+init_sort_bar()/</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>864</x><y>744</y><w>120</w><h>84</h></coordinates><panel_attributes>FlightTab
+--
+
+--
++init_sort_bar()</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1032</x><y>744</y><w>120</w><h>84</h></coordinates><panel_attributes>AirportTab
+--
+
+--
++init_sort_bar()</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1200</x><y>744</y><w>120</w><h>84</h></coordinates><panel_attributes>AirlineTab
+--
+
+--
++init_sort_bar()</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>816</x><y>1056</y><w>228</w><h>132</h></coordinates><panel_attributes>SortBar
+--
+-checkboxes: CheckBoxFrame
+-cb_list: list
+--
++add_cb_box(label: str, load: list)
++add_checkboxes()
++add_label()</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>816</x><y>1248</y><w>516</w><h>180</h></coordinates><panel_attributes>CheckBoxFrame
+--
+_+WEEK: list_
+_+TIME_BLK: list_
++wk_numpicks: int
++time_blk_numpicks: int
+-week_var: list[tkinter.BooleanVar]
+-time_blk_var: list[tkinter.BooleanVar]
+--
++init_components()
++check_min(var: tkinter.BooleanVar, minpick: int, check_type: str): function</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1092</x><y>1056</y><w>240</w><h>168</h></coordinates><panel_attributes>ComboboxFrame
+--
+-cb_val: tkinter.StringVar
+-label: str
+-load: list
+--
++init_components()
++bind_cb(func: function, add: str)
++update_load(new_load: list)
++search(event, tkinter.Event)</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>912</x><y>1176</y><w>36</w><h>96</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;60;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1032</x><y>1116</y><w>84</w><h>36</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>50;10;10;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>1368</x><y>1056</y><w>312</w><h>132</h></coordinates><panel_attributes>SearchTabGraphFrame
+--
++canvas: FigureCanvasTkAgg
+--
++init_components()
++plot_avg_delay_graph(data: pandas.Series)
++plot_on_time_graph(data: pandas.Series)
++plot_dep_time_graph(data: pandas.Series)</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1248</x><y>816</y><w>144</w><h>84</h></coordinates><panel_attributes>lt=&lt;&lt;-</panel_attributes><additional_attributes>100;50;12;50;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1080</x><y>816</y><w>216</w><h>84</h></coordinates><panel_attributes></panel_attributes><additional_attributes>160;50;10;50;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>912</x><y>816</y><w>204</w><h>84</h></coordinates><panel_attributes></panel_attributes><additional_attributes>150;50;10;50;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>924</x><y>960</y><w>648</w><h>120</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;80;10;50;520;50;520;10</additional_attributes></element><element><id>Relation</id><coordinates><x>912</x><y>648</y><w>144</w><h>120</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;80;10;40;100;40;100;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1020</x><y>684</y><w>96</w><h>84</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>60;50;60;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1080</x><y>684</y><w>204</w><h>84</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>150;50;150;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1536</x><y>960</y><w>36</w><h>120</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;80;10;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>1272</x><y>504</y><w>312</w><h>72</h></coordinates><panel_attributes>DataStoryTellingTab
+--
++controller: Controller
+--
++init_components()</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1272</x><y>252</y><w>312</w><h>180</h></coordinates><panel_attributes>DataStoryTellingGraphFrame
+--
++data: list
++canvas: FigureCanvasTkAgg
++toolbar: NavigationToolbar2Tk
+--
++init_components()
++plot_delay_histogram()
++plot_avg_delay()
++plot_flight_week()
++plot_flight_time_blk()</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1416</x><y>420</y><w>36</w><h>108</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;10;10;70</additional_attributes></element><element><id>Relation</id><coordinates><x>1116</x><y>540</y><w>180</w><h>36</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>130;10;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>420</x><y>108</y><w>372</w><h>396</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;310;10;10;290;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1020</x><y>108</y><w>204</w><h>432</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;10;150;10;150;340;90;340</additional_attributes></element><element><id>Relation</id><coordinates><x>1116</x><y>504</y><w>108</w><h>36</h></coordinates><panel_attributes>lt=&lt;-</panel_attributes><additional_attributes>10;10;70;10</additional_attributes></element></diagram>
