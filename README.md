@@ -1,6 +1,7 @@
 # Flight within USA Displayer
 A program to compute and show delay information about US flights based on data from January 2020 (around 500k flights). The information includes departure delay, arrival delay, percentage of diverted flights, and percentage of canceled flights.
-
+## Video
+The explanation and demonstration video can be found [here](https://drive.google.com/file/d/1iILy_iSSIPH9-HLpxioSM9F0CEQYhbMK/view?usp=sharing)
 ## Screenshots
 |Page|Screenshot|
 |---|---|
@@ -51,10 +52,6 @@ Click the exit tab in the UI, then exit the virtualenv using:
 ```
 deactivate
 ```
-
-## Video
-The explanation and demonstration video can be found [here](https://drive.google.com/file/d/1iILy_iSSIPH9-HLpxioSM9F0CEQYhbMK/view?usp=sharing)
-
 ## Project Documents
 All project-related documents are in the [Project Wiki](https://github.com/BioB3/Flight-within-USA-Displayer/wiki)\
 [Project Proposal](https://docs.google.com/document/d/1-VZk-_8u3e_cACW_JfGBeHL-G4JEAu5ZTDW7uUpkOSk/edit#heading=h.brkgjcw3i7fl)\
