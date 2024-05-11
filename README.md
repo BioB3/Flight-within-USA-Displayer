@@ -21,6 +21,7 @@ git clone https://github.com/BioB3/Flight-within-USA-Displayer.git
 ### Navigate to the project directory
 ```
 cd Flight-within-USA-Displayer
+# Flight-within-USA-Displayer-1.0 if download from releases
 ```
 ### Install all the packages required by the program
 ```
